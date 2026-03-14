@@ -1,8 +1,7 @@
 # main.py
 from cd import CD
 from cd_crud import CDCrud
-import sqlalchemy
-from app.welcome import show_home_screen
+from welcome import show_home_screen
 
 crud = CDCrud()
 
@@ -18,7 +17,7 @@ def menu():
     print("7 - Relatório de estoque")
     print("0 - Sair")
 
-# show_home_screen()
+show_home_screen()
 
 while True:
 

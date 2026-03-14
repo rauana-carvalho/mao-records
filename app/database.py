@@ -10,7 +10,8 @@ def connect():
         host=os.getenv("HOST"),
         user=os.getenv("USER"),
         password=os.getenv("PASSWORD"),
-        database=os.getenv("DATABASE"),
+        database=os.getenv("DATABASE", "maos_records"),
+        port=os.getenv("PORT", 3306)
     )
 
     return connection
