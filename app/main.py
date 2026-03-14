@@ -1,5 +1,8 @@
+# main.py
 from cd import CD
 from cd_crud import CDCrud
+import sqlalchemy
+from app.welcome import show_home_screen
 
 crud = CDCrud()
 
@@ -15,6 +18,7 @@ def menu():
     print("7 - Relatório de estoque")
     print("0 - Sair")
 
+# show_home_screen()
 
 while True:
 
@@ -42,7 +46,7 @@ while True:
 
         id_cd = int(input("ID do CD a alterar: "))
 
-        cd_existente = crud.get_one(id_cd)
+        cd_existente = crud.get_by_id(id_cd)
         
         if not cd_existente:
             print(f"\n[!] Erro: Não foi encontrado nenhum CD com o ID {id_cd}. Alteração cancelada.")
@@ -75,7 +79,7 @@ while True:
 
         id_cd = int(input("ID do CD para remover: "))
 
-        cd_existente = crud.get_one(id_cd)
+        cd_existente = crud.get_by_id(id_cd)
         
         if not cd_existente:
             print(f"\n[!] Erro: Não foi encontrado nenhum CD com o ID {id_cd}. Alteração cancelada.")
@@ -87,7 +91,7 @@ while True:
 
 
     elif opcao == "5":
-        cds = crud.list_all()
+        cds = crud.get_all()
 
         if not cds:
             print("\n[!] O estoque está vazio. Nenhum CD cadastrado.")
@@ -99,7 +103,7 @@ while True:
 
     elif opcao == "6":
         id_cd = int(input("Digite o ID do CD: "))
-        cd = crud.get_one(id_cd)
+        cd = crud.get_by_id(id_cd)
 
         if cd:
             print(cd)

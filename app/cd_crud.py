@@ -105,7 +105,7 @@ class CDCrud:
 
 
 
-    def list_all(self):
+    def get_all(self):
 
         connection = connect()
         cursor = connection.cursor()
@@ -139,7 +139,7 @@ class CDCrud:
     
 
 
-    def get_one(self, id_cd):
+    def get_by_id(self, id_cd):
 
         connection = connect()
         cursor = connection.cursor()
@@ -168,7 +168,6 @@ class CDCrud:
         return None
     
 
-
     def report(self):
 
         connection = connect()
@@ -191,4 +190,3 @@ class CDCrud:
 
         cursor.close()
         connection.close()
-
