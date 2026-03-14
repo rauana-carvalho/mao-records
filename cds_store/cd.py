@@ -9,3 +9,15 @@ class CD:
         self.ano = ano
         self.preco = preco
         self.quantidade = quantidade
+
+    def __str__(self):
+
+        return (
+            f"ID: {self.id_cd} | "
+            f"Título: {self.titulo} | "
+            f"Artista: {self.artista} | "
+            f"Gênero: {self.genero} | "
+            f"Ano: {self.ano} | "
+            f"Preço: R${self.preco:.2f} | "
+            f"Quantidade: {self.quantidade}"
+        )

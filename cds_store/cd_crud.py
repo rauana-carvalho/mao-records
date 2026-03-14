@@ -180,9 +180,9 @@ class CDCrud:
 
         resultado = cursor.fetchone()
 
-        total_cds = resultado[0]
-        total_quantidade = resultado[1]
-        valor_total = resultado[2]
+        total_cds = resultado[0] or 0
+        total_quantidade = resultado[1] or 0
+        valor_total = resultado[2] or 0.0
 
         print("\n===== RELATÓRIO DE ESTOQUE =====")
         print("Total de CDs cadastrados:", total_cds)
