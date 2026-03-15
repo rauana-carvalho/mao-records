@@ -1,3 +1,6 @@
 mysql-connector-python
 mysql
 python-dotenv
+questionary
+rich
+readchar

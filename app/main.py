@@ -1,34 +1,39 @@
-# main.py
 from cd import CD
 from cd_crud import CDCrud
 from welcome import show_home_screen
+import questionary
 
 crud = CDCrud()
 
-def menu():
 
-    print("\n===== LOJA DE CDs =====")
-    print("1 - Inserir CD")
-    print("2 - Alterar CD")
-    print("3 - Pesquisar CD por nome")
-    print("4 - Remover CD")
-    print("5 - Listar todos")
-    print("6 - Exibir CD")
-    print("7 - Relatório de estoque")
-    print("0 - Sair")
+def menu():
+    return questionary.select(
+        "Escolha uma opção:",
+        choices=[
+            "Inserir CD",
+            "Alterar CD",
+            "Pesquisar CD por nome",
+            "Remover CD",
+            "Listar todos",
+            "Exibir CD",
+            "Relatório de estoque",
+            "Sair",
+        ],
+        qmark="⋆",
+        pointer="💿",
+    ).ask()
+
 
 try:
     if not show_home_screen():
         raise SystemExit
 
     while True:
+        print("\n===== LOJA DE CDs =====")
 
-        menu()
+        opcao = menu()
 
-        opcao = input("Escolha uma opção: ")
-
-        if opcao == "1":
-
+        if opcao == "Inserir CD":
             titulo = input("Título: ")
             artista = input("Artista: ")
             genero = input("Gênero: ")
@@ -37,18 +42,15 @@ try:
             quantidade = int(input("Quantidade: "))
 
             cd = CD(titulo, artista, genero, ano, preco, quantidade)
-
             crud.create(cd)
 
             print("CD inserido com sucesso!")
 
-
-        elif opcao == "2":
-
+        elif opcao == "Alterar CD":
             id_cd = int(input("ID do CD a alterar: "))
 
             cd_existente = crud.get_by_id(id_cd)
-            
+
             if not cd_existente:
                 print(f"\n[!] Erro: Não foi encontrado nenhum CD com o ID {id_cd}. Alteração cancelada.")
                 continue
@@ -64,8 +66,7 @@ try:
 
             print("CD alterado com sucesso!")
 
-
-        elif opcao == "3":
+        elif opcao == "Pesquisar CD por nome":
             nome = input("Digite o nome do CD: ")
             resultados = crud.search_by_title(nome)
 
@@ -75,23 +76,20 @@ try:
                 for cd in resultados:
                     print(cd)
 
-
-        elif opcao == "4":
-
+        elif opcao == "Remover CD":
             id_cd = int(input("ID do CD para remover: "))
 
             cd_existente = crud.get_by_id(id_cd)
-            
+
             if not cd_existente:
-                print(f"\n[!] Erro: Não foi encontrado nenhum CD com o ID {id_cd}. Alteração cancelada.")
+                print(f"\n[!] Erro: Não foi encontrado nenhum CD com o ID {id_cd}. Remoção cancelada.")
                 continue
 
             crud.delete(id_cd)
 
             print("CD removido com sucesso!")
 
-
-        elif opcao == "5":
+        elif opcao == "Listar todos":
             cds = crud.get_all()
 
             if not cds:
@@ -101,8 +99,7 @@ try:
                 for cd in cds:
                     print(cd)
 
-
-        elif opcao == "6":
+        elif opcao == "Exibir CD":
             id_cd = int(input("Digite o ID do CD: "))
             cd = crud.get_by_id(id_cd)
 
@@ -111,20 +108,12 @@ try:
             else:
                 print(f"\n[!] CD com ID {id_cd} não encontrado.")
 
-
-        elif opcao == "7":
-
+        elif opcao == "Relatório de estoque":
             crud.report()
 
-
-        elif opcao == "0":
-
+        elif opcao == "Sair":
             print("Encerrando o programa")
             break
-
-        else:
-
-            print("Opção inválida")
 
 except KeyboardInterrupt:
     print("\n\nEncerrando sistema...\n")
