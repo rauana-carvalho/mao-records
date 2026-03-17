@@ -183,10 +183,12 @@ class CDCrud:
         total_quantidade = resultado[1] or 0
         valor_total = resultado[2] or 0.0
 
-        print("\n===== RELATÓRIO DE ESTOQUE =====")
-        print("Total de CDs cadastrados:", total_cds)
-        print("Quantidade total em estoque:", total_quantidade)
-        print("Valor total do estoque: R$", valor_total)
-
         cursor.close()
         connection.close()
+
+        return (
+            "===== RELATÓRIO DE ESTOQUE =====\n"
+            f"Total de CDs cadastrados: {total_cds}\n"
+            f"Quantidade total em estoque: {total_quantidade}\n"
+            f"Valor total do estoque: R$ {valor_total:.2f}"
+        )

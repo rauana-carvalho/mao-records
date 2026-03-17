@@ -1,7 +1,7 @@
 services:
   mysql:
     image: mysql:8.0
-    container_name: maos-records-db
+    container_name: mao-records-db
     restart: always
     environment:
       MYSQL_ROOT_PASSWORD: ${ROOT_PASSWORD}
