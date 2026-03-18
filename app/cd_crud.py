@@ -187,7 +187,6 @@ class CDCrud:
         connection.close()
 
         return (
-            "===== RELATÓRIO DE ESTOQUE =====\n"
             f"Total de CDs cadastrados: {total_cds}\n"
             f"Quantidade total em estoque: {total_quantidade}\n"
             f"Valor total do estoque: R$ {valor_total:.2f}"

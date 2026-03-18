@@ -5,6 +5,7 @@ from rich.panel import Panel
 from rich.align import Align
 from rich.layout import Layout
 from rich.live import Live
+import math
 
 console = Console()
 
@@ -120,6 +121,7 @@ def build_layout(right_title, right_content):
 
     return layout
 
+
 def interactive_menu():
     selected = 0
 
@@ -163,7 +165,7 @@ def _render_scrolled_content(content_lines, offset, window_height):
     end_line = min(offset + window_height, total)
 
     footer = (
-        f"\n\n[dim]↑ ↓ scroll • Enter para continuar • mostrando {start_line}-{end_line} of {total}[/dim]"
+        f"\n\n[dim]↑ ↓ scroll • Enter para continuar • mostrando {start_line}-{end_line} de {total}[/dim]"
     )
 
     if total > window_height:
@@ -174,6 +176,7 @@ def _render_scrolled_content(content_lines, offset, window_height):
 
     return body + footer
 
+
 def show_result(title, content):
     if not content.strip():
         content = "Não há informações para exibir."
@@ -181,6 +184,7 @@ def show_result(title, content):
     content_lines = content.rstrip().splitlines()
     if not content_lines:
         content_lines = ["Não há informações para exibir."]
+
     window_height = _get_result_window_height()
     offset = 0
     max_offset = max(0, len(content_lines) - window_height)
@@ -235,6 +239,362 @@ def show_result(title, content):
 
             elif key == readchar.key.CTRL_C:
                 break
+
+
+def _is_printable_key(key):
+    return len(key) == 1 and key.isprintable()
+
+
+def _render_input_screen(form_title, label, value, helper_text, error_text=None):
+    cursor = "█"
+    shown_value = value + cursor
+
+    lines = [
+        f"[bold #d16d9e]{label}[/bold #d16d9e]",
+        "",
+        shown_value if shown_value.strip() else cursor,
+        "",
+        "[dim]Esc = cancelar[/dim]",
+    ]
+
+    if helper_text:
+        lines.extend(["", f"[dim]{helper_text}[/dim]"])
+
+    if error_text:
+        lines.extend(["", f"[bold red]{error_text}[/bold red]"])
+
+    return "\n".join(lines)
+
+
+def _input_text_in_panel(title, label, *, initial_value="", max_length=None, helper_text="", validator=None):
+    value = initial_value
+    error_text = None
+
+    with Live(
+        build_layout(title, _render_input_screen(title, label, value, helper_text, error_text)),
+        console=console,
+        screen=False,
+        auto_refresh=False,
+    ) as live:
+        while True:
+            key = readchar.readkey()
+
+            if key == readchar.key.CTRL_C:
+                raise KeyboardInterrupt
+
+            if key == readchar.key.ESC:
+                return None
+
+            if key in (readchar.key.ENTER, readchar.key.CR, readchar.key.LF):
+                text = value.strip()
+
+                if validator is not None:
+                    ok, processed_or_error = validator(text)
+                    if ok:
+                        return processed_or_error
+
+                    error_text = processed_or_error
+                    live.update(
+                        build_layout(title, _render_input_screen(title, label, value, helper_text, error_text)),
+                        refresh=True,
+                    )
+                    continue
+
+                return text
+
+            if key in (readchar.key.BACKSPACE, readchar.key.DELETE):
+                if value:
+                    value = value[:-1]
+                    error_text = None
+                    live.update(
+                        build_layout(title, _render_input_screen(title, label, value, helper_text, error_text)),
+                        refresh=True,
+                    )
+                continue
+
+            if _is_printable_key(key):
+                if max_length is None or len(value) < max_length:
+                    value += key
+                    error_text = None
+                    live.update(
+                        build_layout(title, _render_input_screen(title, label, value, helper_text, error_text)),
+                        refresh=True,
+                    )
+
+
+def _validate_non_empty(max_length=None):
+    def validator(text):
+        if not text:
+            return False, "Esse campo não pode ser vazio."
+        if max_length is not None and len(text) > max_length:
+            return False, f"Esse campo pode ter no máximo {max_length} caracteres."
+        return True, text
+    return validator
+
+
+def _validate_int(min_value=None, max_value=None, max_error_message=None):
+    def validator(text):
+        if not text:
+            return False, "Esse campo não pode ser vazio."
+        try:
+            value = int(text)
+        except ValueError:
+            return False, "Entrada inválida. Deve ser um número inteiro."
+
+        if min_value is not None and value < min_value:
+            return False, f"O valor deve ser no mínimo {min_value}."
+
+        if max_value is not None and value > max_value:
+            if max_error_message:
+                return False, max_error_message
+            return False, f"O valor deve ser no máximo {max_value}."
+
+        return True, value
+    return validator
+
+
+def _validate_float(min_value=None, max_value=None):
+    def validator(text):
+        if not text:
+            return False, "Esse campo não pode ser vazio."
+        try:
+            value = float(text)
+        except ValueError:
+            return False, "Entrada inválida. Deve ser um número."
+
+        if not math.isfinite(value):
+            return False, "Entrada inválida. Digite um número finito."
+
+        if min_value is not None and value <= min_value:
+            return False, f"O valor deve ser maior que {min_value}."
+
+        if max_value is not None and value > max_value:
+            return False, f"O valor deve ser no máximo {max_value}."
+
+        return True, value
+    return validator
+
+
+def _confirm_in_panel(title, message, enter_text="Enter para confirmar", esc_text="Esc para cancelar"):
+    content = (
+        f"{message}\n\n"
+        f"[dim]{enter_text}[/dim]\n"
+        f"[dim]{esc_text}[/dim]"
+    )
+
+    with Live(
+        build_layout(title, content),
+        console=console,
+        screen=False,
+        auto_refresh=False,
+    ) as live:
+        while True:
+            key = readchar.readkey()
+
+            if key == readchar.key.CTRL_C:
+                raise KeyboardInterrupt
+            if key in (readchar.key.ENTER, readchar.key.CR, readchar.key.LF):
+                return True
+            if key == readchar.key.ESC:
+                return False
+
+
+def prompt_non_empty_text(title, label, max_length):
+    return _input_text_in_panel(
+        title,
+        label,
+        max_length=max_length,
+        validator=_validate_non_empty(max_length=max_length),
+    )
+
+
+def prompt_id(title, label):
+    return _input_text_in_panel(
+        title,
+        label,
+        max_length=10,
+        validator=_validate_int(min_value=1),
+    )
+
+
+def prompt_insert_cd_form():
+    titulo = _input_text_in_panel(
+        "Inserir CD",
+        "Título:",
+        max_length=150,
+        validator=_validate_non_empty(max_length=150),
+    )
+    if titulo is None:
+        return None
+
+    artista = _input_text_in_panel(
+        "Inserir CD",
+        "Artista:",
+        max_length=150,
+        validator=_validate_non_empty(max_length=150),
+    )
+    if artista is None:
+        return None
+
+    genero = _input_text_in_panel(
+        "Inserir CD",
+        "Gênero:",
+        max_length=100,
+        validator=_validate_non_empty(max_length=100),
+    )
+    if genero is None:
+        return None
+
+    ano = _input_text_in_panel(
+        "Inserir CD",
+        "Ano de lançamento:",
+        max_length=4,
+        validator=_validate_int(min_value=1982, max_value=2026),
+    )
+    if ano is None:
+        return None
+
+    preco = _input_text_in_panel(
+        "Inserir CD",
+        "Preço:",
+        max_length=12,
+        validator=_validate_float(min_value=0, max_value=1000000.99),
+    )
+    if preco is None:
+        return None
+
+    quantidade = _input_text_in_panel(
+        "Inserir CD",
+        "Quantidade:",
+        max_length=10,
+        validator=_validate_int(
+            min_value=0,
+            max_value=50,
+            max_error_message="Nossa loja tem o limite de 50 unidades por cd.",
+        ),
+    )
+    if quantidade is None:
+        return None
+
+    resumo = (
+        f"[bold #d16d9e]Confira os dados:[/bold #d16d9e]\n\n"
+        f"Título: {titulo}\n"
+        f"Artista: {artista}\n"
+        f"Gênero: {genero}\n"
+        f"Ano de lançamento: {ano}\n"
+        f"Preço: {preco}\n"
+        f"Quantidade: {quantidade}\n\n"
+    )
+
+    confirm = _confirm_in_panel("Confirmar Inserção", resumo)
+    if not confirm:
+        return None
+
+    return {
+        "titulo": titulo,
+        "artista": artista,
+        "genero": genero,
+        "ano": ano,
+        "preco": preco,
+        "quantidade": quantidade,
+    }
+
+
+def prompt_edit_cd_form(cd_existente):
+    titulo = _input_text_in_panel(
+        "Alterar CD",
+        "Novo título:",
+        initial_value=str(cd_existente.titulo),
+        max_length=150,
+        validator=_validate_non_empty(max_length=150),
+    )
+    if titulo is None:
+        return None
+
+    artista = _input_text_in_panel(
+        "Alterar CD",
+        "Novo artista:",
+        initial_value=str(cd_existente.artista),
+        max_length=150,
+        validator=_validate_non_empty(max_length=150),
+    )
+    if artista is None:
+        return None
+
+    genero = _input_text_in_panel(
+        "Alterar CD",
+        "Novo gênero:",
+        initial_value=str(cd_existente.genero),
+        max_length=100,
+        validator=_validate_non_empty(max_length=100),
+    )
+    if genero is None:
+        return None
+
+    ano = _input_text_in_panel(
+        "Alterar CD",
+        "Novo ano:",
+        initial_value=str(cd_existente.ano),
+        max_length=4,
+        validator=_validate_int(min_value=1982, max_value=2026),
+    )
+    if ano is None:
+        return None
+
+    preco = _input_text_in_panel(
+        "Alterar CD",
+        "Novo preço:",
+        initial_value=str(cd_existente.preco),
+        max_length=12,
+        validator=_validate_float(min_value=0, max_value=1000000.99),
+    )
+    if preco is None:
+        return None
+
+    quantidade = _input_text_in_panel(
+        "Alterar CD",
+        "Nova quantidade:",
+        initial_value=str(cd_existente.quantidade),
+        max_length=10,
+        validator=_validate_int(
+            min_value=0,
+            max_value=50,
+            max_error_message="Nossa loja tem o limite de 50 unidades por cd.",
+        ),
+    )
+    if quantidade is None:
+        return None
+
+    resumo = (
+        f"[bold #d16d9e]Confira os novos dados:[/bold #d16d9e]\n\n"
+        f"Título: {titulo}\n"
+        f"Artista: {artista}\n"
+        f"Gênero: {genero}\n"
+        f"Ano de lançamento: {ano}\n"
+        f"Preço: {preco}\n"
+        f"Quantidade: {quantidade}\n\n"
+    )
+
+    confirm = _confirm_in_panel("Confirmar Alteração", resumo)
+    if not confirm:
+        return None
+
+    return {
+        "titulo": titulo,
+        "artista": artista,
+        "genero": genero,
+        "ano": ano,
+        "preco": preco,
+        "quantidade": quantidade,
+    }
+
+
+def prompt_remove_confirmation(cd_existente):
+    message = (
+        "[bold red]Tem certeza que deseja remover este CD?[/bold red]\n\n"
+        f"{cd_existente}"
+    )
+    return _confirm_in_panel("Remover CD", message)
 
 
 def show_home_screen():

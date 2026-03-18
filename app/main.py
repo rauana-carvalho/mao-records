@@ -1,7 +1,18 @@
 from cd import CD
 from cd_crud import CDCrud
-from welcome import show_home_screen, interactive_menu, show_result
+from welcome import (
+    show_home_screen,
+    interactive_menu,
+    show_result,
+    prompt_insert_cd_form,
+    prompt_non_empty_text,
+    prompt_id,
+    prompt_edit_cd_form,
+    prompt_remove_confirmation,
+)
+
 import math
+from rich.console import Console
 
 crud = CDCrud()
 
@@ -196,43 +207,62 @@ try:
         opcao = interactive_menu()
 
         if opcao == "Inserir CD":
-            titulo = non_empty_input("Título: ", max_length=150)
-            artista = non_empty_input("Artista: ", max_length=150)
-            genero = non_empty_input("Gênero: ", max_length=100)
-            ano = input_int("Ano de lançamento: ", min_value=1982, max_value=2026)
-            preco = input_float("Preço: ", min_value=0, max_value=1000000.99)
-            quantidade = quant_input_int("Quantidade: ", min_value=0, max_value=50)
+            form_data = prompt_insert_cd_form()
 
-            cd = CD(titulo, artista, genero, ano, preco, quantidade)
+            if form_data is None:
+                show_result("Inserir CD", "Inserção cancelada.")
+                continue
+
+            cd = CD(
+                form_data["titulo"],
+                form_data["artista"],
+                form_data["genero"],
+                form_data["ano"],
+                form_data["preco"],
+                form_data["quantidade"],
+            )
             crud.create(cd)
 
             show_result("Inserir CD", "CD inserido com sucesso!")
 
         elif opcao == "Alterar CD":
-            id_cd = input_int("ID do CD a alterar: ", min_value=1)
+            id_cd = prompt_id("Alterar CD", "ID do CD a alterar:")
+            if id_cd is None:
+                show_result("Alterar CD", "Alteração cancelada.")
+                continue
+
             cd_existente = crud.get_by_id(id_cd)
 
             if not cd_existente:
                 show_result(
                     "Alterar CD",
-                    f"[!] Erro: Não foi encontrado nenhum CD com o ID {id_cd}. Alteração cancelada."
+                    f"[!] Não foi encontrado nenhum CD com o ID {id_cd}. Alteração cancelada."
                 )
                 continue
 
-            show_result("CD atual", str(cd_existente))
+            novos_dados = prompt_edit_cd_form(cd_existente)
+            if novos_dados is None:
+                show_result("Alterar CD", "Alteração cancelada.")
+                continue
 
-            titulo = optional_text_input("Novo título", cd_existente.titulo, max_length=150)
-            artista = optional_text_input("Novo artista", cd_existente.artista, max_length=150)
-            genero = optional_text_input("Novo gênero", cd_existente.genero, max_length=100)
-            ano = optional_int_input("Novo ano", cd_existente.ano, min_value=1982, max_value=2026)
-            preco = optional_float_input("Novo preço", cd_existente.preco, min_value=0, max_value=1000000.99)
-            quantidade = optional_quant_input_int("Nova quantidade", cd_existente.quantidade, min_value=0, max_value=50)
-
-            crud.update(id_cd, titulo, artista, genero, ano, preco, quantidade)
+            crud.update(
+                id_cd,
+                novos_dados["titulo"],
+                novos_dados["artista"],
+                novos_dados["genero"],
+                novos_dados["ano"],
+                novos_dados["preco"],
+                novos_dados["quantidade"],
+            )
             show_result("Alterar CD", "CD alterado com sucesso!")
 
+
         elif opcao == "Pesquisar CD por nome":
-            nome = non_empty_input("Digite o nome do CD: ", max_length=150)
+            nome = prompt_non_empty_text("Pesquisar CD por nome", "Digite o nome do CD:", 150)
+            if nome is None:
+                show_result("Pesquisar CD por nome", "Pesquisa cancelada.")
+                continue
+
             resultados = crud.search_by_title(nome)
 
             if not resultados:
@@ -240,18 +270,27 @@ try:
             else:
                 show_result(
                     "Pesquisar CD por nome",
-                    "\n\n".join(str(cd) for cd in resultados)
+                    format_cd_list(resultados)
                 )
 
         elif opcao == "Remover CD":
-            id_cd = input_int("ID do CD para remover: ", min_value=1)
+            id_cd = prompt_id("Remover CD", "ID do CD para remover:")
+            if id_cd is None:
+                show_result("Remover CD", "Remoção cancelada.")
+                continue
+
             cd_existente = crud.get_by_id(id_cd)
 
             if not cd_existente:
                 show_result(
                     "Remover CD",
-                    f"[!] Erro: Não foi encontrado nenhum CD com o ID {id_cd}. Remoção cancelada."
+                    f"[!] Não foi encontrado nenhum CD com o ID {id_cd}. Remoção cancelada."
                 )
+                continue
+
+            confirm = prompt_remove_confirmation(cd_existente)
+            if not confirm:
+                show_result("Remover CD", "Remoção cancelada.")
                 continue
 
             crud.delete(id_cd)
@@ -262,13 +301,18 @@ try:
             show_result("Lista de CDs", format_cd_list(cds))
 
         elif opcao == "Exibir CD":
-            id_cd = input_int("Digite o ID do CD: ", min_value=1)
+            id_cd = prompt_id("Exibir CD", "Digite o ID do CD:")
+            if id_cd is None:
+                show_result("Exibir CD", "Operação cancelada.")
+                continue
+
             cd = crud.get_by_id(id_cd)
 
-            if cd:
-                show_result("Exibir CD", format_cd(cd))
-            else:
-                show_result("Exibir CD", f"[!] CD com ID {id_cd} não encontrado.")
+            if not cd:
+                show_result("Exibir CD", f"[!] Não foi encontrado nenhum CD com o ID {id_cd}.")
+                continue
+
+            show_result("Exibir CD", format_cd(cd))
 
         elif opcao == "Relatório de estoque":
             relatorio = crud.report()
@@ -278,4 +322,5 @@ try:
             break
 
 except (KeyboardInterrupt, EOFError):
-    print("\n\nEncerrando sistema...\n")
+    console = Console()
+    console.print("\n[!] Operação cancelada pelo usuário. Encerrando o programa.\n", style="#d16d9e")
