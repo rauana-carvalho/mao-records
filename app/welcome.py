@@ -1,11 +1,12 @@
 import os
+import math
+
 import readchar
-from rich.console import Console
-from rich.panel import Panel
 from rich.align import Align
+from rich.console import Console
 from rich.layout import Layout
 from rich.live import Live
-import math
+from rich.panel import Panel
 
 console = Console()
 
@@ -40,7 +41,6 @@ LEFT_ART = [
 ]
 
 TITLE_ART = [
-
     "⋆｡° ✦  MAO RECORDS  ✦ °｡⋆",
     "",
     "███    ███  █████   ██████      ██████  ███████  ██████  ██████  ██████  ███████   ███████",
@@ -55,11 +55,11 @@ TITLE_ART = [
 TITLE_PANEL_HEIGHT = len(TITLE_ART) + 4
 
 OPTIONS = [
-    "Cadastrar produto",
+    "Cadastrar item musical",
     "Cadastrar cliente",
     "Cadastrar vendedor",
-    "Buscar produtos",
-    "Listar produtos",
+    "Buscar itens musicais",
+    "Listar itens musicais",
     "Realizar compra",
     "Ver dados do cliente",
     "Ver pedidos do cliente",
@@ -122,6 +122,10 @@ def build_layout(right_title, right_content):
     layout["content"].update(content_panel)
 
     return layout
+
+
+def show_home_screen():
+    return True
 
 
 def interactive_menu():
@@ -198,7 +202,10 @@ def show_result(title, content):
         auto_refresh=False,
     ) as live:
         while True:
-            key = readchar.readkey()
+            try:
+                key = readchar.readkey()
+            except KeyboardInterrupt:
+                return None
 
             if key == readchar.key.UP:
                 new_offset = max(0, offset - 1)
@@ -376,6 +383,39 @@ def _validate_float(min_value=None, max_value=None):
         return True, value
     return validator
 
+
+def _validate_optional_float(min_value=None, max_value=None):
+    def validator(text):
+        if text == "":
+            return True, ""
+        try:
+            value = float(text)
+        except ValueError:
+            return False, "Entrada inválida. Deve ser um número."
+
+        if not math.isfinite(value):
+            return False, "Entrada inválida. Digite um número finito."
+
+        if min_value is not None and value < min_value:
+            return False, f"O valor deve ser no mínimo {min_value}."
+
+        if max_value is not None and value > max_value:
+            return False, f"O valor deve ser no máximo {max_value}."
+
+        return True, value
+    return validator
+
+
+def _validate_optional_text(max_length=None):
+    def validator(text):
+        if text == "":
+            return True, ""
+        if max_length is not None and len(text) > max_length:
+            return False, f"Esse campo pode ter no máximo {max_length} caracteres."
+        return True, text
+    return validator
+
+
 def _validate_email(text):
     text = text.strip()
 
@@ -389,6 +429,22 @@ def _validate_email(text):
         return False, "Digite um e-mail válido."
 
     return True, text
+
+
+def _validate_telefone(text):
+    text = text.strip()
+
+    if not text:
+        return False, "Esse campo não pode ser vazio."
+
+    if len(text) > 20:
+        return False, "Esse campo pode ter no máximo 20 caracteres."
+
+    if len(text) < 8:
+        return False, "O telefone do cliente é inválido. Digite pelo menos 8 caracteres."
+
+    return True, text
+
 
 def _validate_tipo_midia(text):
     if not text:
@@ -407,6 +463,20 @@ def _validate_tipo_midia(text):
         return False, "Digite apenas: CD, DVD, VINIL ou CASSETE."
 
     return True, validos[normalized]
+
+
+def _validate_yes_no_or_empty(text):
+    if text == "":
+        return True, None
+
+    normalized = text.strip().lower()
+    if normalized in ("s", "sim", "y", "yes"):
+        return True, True
+    if normalized in ("n", "nao", "não", "no"):
+        return True, False
+
+    return False, "Digite S para sim, N para não, ou Enter para ignorar."
+
 
 def _confirm_in_panel(title, message, enter_text="Enter para confirmar", esc_text="Esc para cancelar"):
     content = (
@@ -630,66 +700,18 @@ def prompt_remove_confirmation(cd_existente):
     return _confirm_in_panel("Remover CD", message)
 
 
-def show_home_screen():
-    return True
-
-def _validate_optional_float(min_value=None, max_value=None):
-    def validator(text):
-        if text == "":
-            return True, ""
-        try:
-            value = float(text)
-        except ValueError:
-            return False, "Entrada inválida. Deve ser um número."
-
-        if not math.isfinite(value):
-            return False, "Entrada inválida. Digite um número finito."
-
-        if min_value is not None and value < min_value:
-            return False, f"O valor deve ser no mínimo {min_value}."
-
-        if max_value is not None and value > max_value:
-            return False, f"O valor deve ser no máximo {max_value}."
-
-        return True, value
-    return validator
-
-
-def _validate_optional_text(max_length=None):
-    def validator(text):
-        if text == "":
-            return True, ""
-        if max_length is not None and len(text) > max_length:
-            return False, f"Esse campo pode ter no máximo {max_length} caracteres."
-        return True, text
-    return validator
-
-
-def _validate_yes_no_or_empty(text):
-    if text == "":
-        return True, None
-
-    normalized = text.strip().lower()
-    if normalized in ("s", "sim", "y", "yes"):
-        return True, True
-    if normalized in ("n", "nao", "não", "no"):
-        return True, False
-
-    return False, "Digite S para sim, N para não, ou Enter para ignorar."
-
-
 def prompt_produto_form():
-    nome = _input_text_in_panel(
-        "Cadastrar produto",
-        "Nome:",
+    titulo_album = _input_text_in_panel(
+        "Cadastrar item musical",
+        "Título do álbum:",
         max_length=150,
         validator=_validate_non_empty(max_length=150),
     )
-    if nome is None:
+    if titulo_album is None:
         return None
 
     artista = _input_text_in_panel(
-        "Cadastrar produto",
+        "Cadastrar item musical",
         "Artista:",
         max_length=150,
         validator=_validate_non_empty(max_length=150),
@@ -698,25 +720,25 @@ def prompt_produto_form():
         return None
 
     categoria = _input_text_in_panel(
-        "Cadastrar produto",
-        "Categoria:",
+        "Cadastrar item musical",
+        "Categoria musical:",
         max_length=100,
         validator=_validate_non_empty(max_length=100),
     )
     if categoria is None:
         return None
-    
+
     tipo_midia = _select_option_in_panel(
-        "Cadastrar produto",
+        "Cadastrar item musical",
         "Tipo de mídia:",
         ["CD", "DVD", "VINIL", "CASSETE"],
-        helper_text="Escolha o tipo de mídia do produto.",
+        helper_text="Escolha o tipo de mídia do item musical.",
     )
     if tipo_midia is None:
         return None
 
     ano_fabricacao = _input_text_in_panel(
-        "Cadastrar produto",
+        "Cadastrar item musical",
         "Ano de fabricação:",
         max_length=4,
         validator=_validate_int(min_value=1900, max_value=2026),
@@ -725,7 +747,7 @@ def prompt_produto_form():
         return None
 
     fabricado_em_mari = _input_text_in_panel(
-        "Cadastrar produto",
+        "Cadastrar item musical",
         "Fabricado em Mari? (S/N):",
         max_length=3,
         validator=lambda text: _validate_yes_no_or_empty(text) if text else (False, "Esse campo não pode ser vazio."),
@@ -734,7 +756,7 @@ def prompt_produto_form():
         return None
 
     preco = _input_text_in_panel(
-        "Cadastrar produto",
+        "Cadastrar item musical",
         "Preço:",
         max_length=12,
         validator=_validate_float(min_value=0, max_value=1000000.99),
@@ -743,7 +765,7 @@ def prompt_produto_form():
         return None
 
     estoque = _input_text_in_panel(
-        "Cadastrar produto",
+        "Cadastrar item musical",
         "Estoque:",
         max_length=10,
         validator=_validate_int(min_value=0, max_value=10000),
@@ -753,9 +775,9 @@ def prompt_produto_form():
 
     resumo = (
         f"[bold #d16d9e]Confira os dados:[/bold #d16d9e]\n\n"
-        f"Nome: {nome}\n"
+        f"Título do álbum: {titulo_album}\n"
         f"Artista: {artista}\n"
-        f"Categoria: {categoria}\n"
+        f"Categoria musical: {categoria}\n"
         f"Tipo de mídia: {tipo_midia}\n"
         f"Ano de fabricação: {ano_fabricacao}\n"
         f"Fabricado em Mari: {'Sim' if fabricado_em_mari else 'Não'}\n"
@@ -767,7 +789,7 @@ def prompt_produto_form():
         return None
 
     return {
-        "nome": nome,
+        "titulo_album": titulo_album,
         "artista": artista,
         "categoria": categoria,
         "tipo_midia": tipo_midia,
@@ -790,7 +812,7 @@ def prompt_cliente_form():
 
     email = _input_text_in_panel(
         "Cadastrar cliente",
-        "Email:",
+        "E-mail:",
         max_length=150,
         validator=_validate_email,
     )
@@ -801,7 +823,7 @@ def prompt_cliente_form():
         "Cadastrar cliente",
         "Telefone:",
         max_length=20,
-        validator=_validate_non_empty(max_length=20),
+        validator=_validate_telefone,
     )
     if telefone is None:
         return None
@@ -833,6 +855,19 @@ def prompt_cliente_form():
     if anime_favorito is None:
         return None
 
+    resumo = (
+        f"[bold #d16d9e]Confira os dados:[/bold #d16d9e]\n\n"
+        f"Nome: {nome}\n"
+        f"E-mail: {email}\n"
+        f"Telefone: {telefone}\n"
+        f"Cidade: {cidade}\n"
+        f"Time de futebol: {time_futebol}\n"
+        f"Anime favorito: {anime_favorito}\n"
+    )
+
+    if not _confirm_in_panel("Confirmar cadastro", resumo):
+        return None
+
     return {
         "nome": nome,
         "email": email,
@@ -855,7 +890,7 @@ def prompt_vendedor_form():
 
     email = _input_text_in_panel(
         "Cadastrar vendedor",
-        "Email:",
+        "E-mail:",
         max_length=150,
         validator=_validate_email,
     )
@@ -879,17 +914,17 @@ def prompt_vendedor_form():
 
 
 def prompt_busca_produtos_form():
-    nome = _input_text_in_panel(
-        "Buscar produtos",
-        "Nome (opcional):",
+    titulo_album = _input_text_in_panel(
+        "Buscar itens musicais",
+        "Título do álbum (opcional):",
         max_length=150,
         validator=_validate_optional_text(max_length=150),
     )
-    if nome is None:
+    if titulo_album is None:
         return None
 
     preco_min = _input_text_in_panel(
-        "Buscar produtos",
+        "Buscar itens musicais",
         "Preço mínimo (opcional):",
         max_length=12,
         validator=_validate_optional_float(min_value=0),
@@ -898,7 +933,7 @@ def prompt_busca_produtos_form():
         return None
 
     preco_max = _input_text_in_panel(
-        "Buscar produtos",
+        "Buscar itens musicais",
         "Preço máximo (opcional):",
         max_length=12,
         validator=_validate_optional_float(min_value=0),
@@ -907,16 +942,16 @@ def prompt_busca_produtos_form():
         return None
 
     categoria = _input_text_in_panel(
-        "Buscar produtos",
-        "Categoria (opcional):",
+        "Buscar itens musicais",
+        "Categoria musical (opcional):",
         max_length=100,
         validator=_validate_optional_text(max_length=100),
     )
     if categoria is None:
         return None
-    
+
     tipo_midia = _input_text_in_panel(
-        "Buscar produtos",
+        "Buscar itens musicais",
         "Tipo de mídia (opcional):",
         max_length=8,
         validator=_validate_optional_text(max_length=8),
@@ -925,7 +960,7 @@ def prompt_busca_produtos_form():
         return None
 
     fabricado_em_mari = _input_text_in_panel(
-        "Buscar produtos",
+        "Buscar itens musicais",
         "Fabricado em Mari? (S/N ou Enter para ignorar):",
         max_length=5,
         validator=_validate_yes_no_or_empty,
@@ -934,7 +969,7 @@ def prompt_busca_produtos_form():
         return None
 
     somente_baixo_estoque = _input_text_in_panel(
-        "Buscar produtos",
+        "Buscar itens musicais",
         "Somente estoque < 5? (S/N):",
         max_length=3,
         validator=lambda text: _validate_yes_no_or_empty(text) if text else (False, "Esse campo não pode ser vazio."),
@@ -943,11 +978,11 @@ def prompt_busca_produtos_form():
         return None
 
     return {
-        "nome": nome or None,
+        "titulo_album": titulo_album or None,
         "preco_min": preco_min,
         "preco_max": preco_max,
         "categoria": categoria or None,
-        "tipo_midia": tipo_midia or None,
+        "tipo_midia": (tipo_midia.upper() if tipo_midia else None),
         "fabricado_em_mari": fabricado_em_mari,
         "somente_baixo_estoque": somente_baixo_estoque,
     }
@@ -983,7 +1018,7 @@ def prompt_compra_form():
 
     produto_id = _input_text_in_panel(
         "Realizar compra",
-        "ID do produto:",
+        "ID do item musical:",
         max_length=10,
         validator=_validate_int(min_value=1),
     )
@@ -1025,6 +1060,7 @@ def prompt_cliente_id(title):
         max_length=10,
         validator=_validate_int(min_value=1),
     )
+
 
 def _render_select_screen(label, options, selected_index, helper_text="", error_text=None):
     lines = [f"[bold #d16d9e]{label}[/bold #d16d9e]", ""]

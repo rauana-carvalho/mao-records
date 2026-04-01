@@ -19,11 +19,6 @@ from welcome import (
 console = Console()
 crud = StoreCrud()
 
-print(StoreCrud)
-print(StoreCrud.__module__)
-print(hasattr(crud, "buscar_produtos"))
-print(dir(crud))
-input("enter")
 
 def to_decimal(value):
     if value is None or value == "":
@@ -53,23 +48,23 @@ def format_database_error(error):
         return "O telefone do cliente é inválido. Digite pelo menos 8 caracteres."
 
     if "chk_produto_nome" in message:
-        return "O nome do produto não pode estar vazio."
+        return "O título do álbum não pode estar vazio."
 
     if "chk_produto_artista" in message:
-        return "O artista do produto não pode estar vazio."
+        return "O artista do item musical não pode estar vazio."
 
     if "chk_produto_categoria" in message:
-        return "A categoria do produto não pode estar vazia."
+        return "A categoria musical não pode estar vazia."
 
     if "chk_produto_ano" in message:
-        return "O ano de fabricação do produto é inválido."
+        return "O ano de fabricação do item musical é inválido."
 
     if "chk_produto_preco" in message:
-        return "O preço do produto precisa ser maior que zero."
+        return "O preço do item musical precisa ser maior que zero."
 
     if "chk_produto_estoque" in message:
-        return "O estoque do produto não pode ser negativo."
-    
+        return "O estoque do item musical não pode ser negativo."
+
     if message == "'tipo_midia'":
         return "O filtro de tipo de mídia ainda não foi integrado corretamente no formulário de busca."
 
@@ -92,7 +87,7 @@ def format_database_error(error):
         return "Cliente não encontrado."
 
     if "Produto nao encontrado" in message:
-        return "Produto não encontrado."
+        return "Item musical não encontrado."
 
     if "Forma de pagamento nao encontrada" in message:
         return "Forma de pagamento não encontrada."
@@ -106,14 +101,14 @@ def format_database_error(error):
     return f"Ocorreu um erro no banco de dados:\n{message}"
 
 
-def format_produto(produto):
+def format_item_musical(produto):
     fabricado_em_mari = "Sim" if produto["fabricado_em_mari"] else "Não"
 
     return (
         f"ID: {produto['id']}\n"
-        f"Nome: {produto['nome']}\n"
+        f"Título do álbum: {produto['nome']}\n"
         f"Artista: {produto['artista']}\n"
-        f"Categoria: {produto['categoria']}\n"
+        f"Categoria musical: {produto['categoria']}\n"
         f"Tipo de mídia: {produto['tipo_midia']}\n"
         f"Ano de fabricação: {produto['ano_fabricacao']}\n"
         f"Fabricado em Mari: {fabricado_em_mari}\n"
@@ -122,11 +117,11 @@ def format_produto(produto):
     )
 
 
-def format_lista_produtos(produtos):
+def format_lista_itens_musicais(produtos):
     if not produtos:
-        return "[!] Nenhum produto encontrado."
+        return "[!] Nenhum item musical encontrado."
 
-    return "\n\n".join(format_produto(produto) for produto in produtos)
+    return "\n\n".join(format_item_musical(produto) for produto in produtos)
 
 
 def format_cliente_detalhado(dados):
@@ -186,15 +181,15 @@ def main():
         while True:
             opcao = interactive_menu()
 
-            if opcao == "Cadastrar produto":
+            if opcao == "Cadastrar item musical":
                 dados = prompt_produto_form()
                 if dados is None:
-                    show_result("Cadastrar produto", "Operação cancelada.")
+                    show_result("Cadastrar item musical", "Operação cancelada.")
                     continue
 
                 try:
                     produto = Produto(
-                        nome=dados["nome"],
+                        nome=dados["titulo_album"],
                         artista=dados["artista"],
                         categoria=dados["categoria"],
                         tipo_midia=TipoMidia(dados["tipo_midia"]),
@@ -206,11 +201,11 @@ def main():
 
                     produto_id = crud.create_produto(produto)
                     show_result(
-                        "Cadastrar produto",
-                        f"Produto cadastrado com sucesso!\nID gerado: {produto_id}",
+                        "Cadastrar item musical",
+                        f"Item musical cadastrado com sucesso!\nID gerado: {produto_id}",
                     )
                 except Exception as error:
-                    show_result("Cadastrar produto", f"[!] {format_database_error(error)}")
+                    show_result("Cadastrar item musical", f"[!] {format_database_error(error)}")
 
             elif opcao == "Cadastrar cliente":
                 dados = prompt_cliente_form()
@@ -257,15 +252,15 @@ def main():
                 except Exception as error:
                     show_result("Cadastrar vendedor", f"[!] {format_database_error(error)}")
 
-            elif opcao == "Buscar produtos":
+            elif opcao == "Buscar itens musicais":
                 filtros = prompt_busca_produtos_form()
                 if filtros is None:
-                    show_result("Buscar produtos", "Operação cancelada.")
+                    show_result("Buscar itens musicais", "Operação cancelada.")
                     continue
 
                 try:
                     resultados = crud.buscar_produtos(
-                        nome=filtros["nome"],
+                        nome=filtros["titulo_album"],
                         preco_min=to_decimal(filtros["preco_min"]),
                         preco_max=to_decimal(filtros["preco_max"]),
                         categoria=filtros["categoria"],
@@ -274,16 +269,16 @@ def main():
                         somente_baixo_estoque=filtros["somente_baixo_estoque"],
                     )
 
-                    show_result("Buscar produtos", format_lista_produtos(resultados))
+                    show_result("Buscar itens musicais", format_lista_itens_musicais(resultados))
                 except Exception as error:
-                    show_result("Buscar produtos", f"[!] {format_database_error(error)}")
+                    show_result("Buscar itens musicais", f"[!] {format_database_error(error)}")
 
-            elif opcao == "Listar produtos":
+            elif opcao == "Listar itens musicais":
                 try:
                     produtos = crud.listar_produtos()
-                    show_result("Listar produtos", format_lista_produtos(produtos))
+                    show_result("Listar itens musicais", format_lista_itens_musicais(produtos))
                 except Exception as error:
-                    show_result("Listar produtos", f"[!] {format_database_error(error)}")
+                    show_result("Listar itens musicais", f"[!] {format_database_error(error)}")
 
             elif opcao == "Realizar compra":
                 dados = prompt_compra_form()
@@ -344,7 +339,7 @@ def main():
                         linhas.append(
                             f"Pedido #{pedido['compra_id']} | "
                             f"Data: {pedido['data_compra']} | "
-                            f"Produto: {pedido['produto_nome']} | "
+                            f"Item musical: {pedido['produto_nome']} | "
                             f"Categoria: {pedido['categoria']} | "
                             f"Qtd: {pedido['quantidade']} | "
                             f"Preço unit.: R$ {pedido['preco_unitario']} | "

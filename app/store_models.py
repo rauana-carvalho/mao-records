@@ -40,6 +40,7 @@ class Vendedor:
     ativo: bool = True
     id_vendedor: Optional[int] = None
 
+
 @dataclass
 class FormaPagamento:
     nome: str
