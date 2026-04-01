@@ -1,13 +1,20 @@
 from dataclasses import dataclass
 from decimal import Decimal
+from enum import Enum
 from typing import Optional
 
-
+class TipoMidia(str, Enum):
+    CD = "CD"
+    DVD = "DVD"
+    VINIL = "VINIL"
+    CASSETE = "CASSETE"
+    
 @dataclass
 class Produto:
     nome: str
     artista: str
     categoria: str
+    tipo_midia: TipoMidia
     ano_fabricacao: int
     fabricado_em_mari: bool
     preco: Decimal

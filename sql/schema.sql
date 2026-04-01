@@ -48,7 +48,7 @@ CREATE TABLE produtos (
     nome VARCHAR(150) NOT NULL,
     artista VARCHAR(150) NOT NULL,
     categoria VARCHAR(100) NOT NULL,
-    tipo_midia ENUM('CD', 'DVD', 'VINYL', 'CASSETE') NOT NULL,
+    tipo_midia ENUM('CD', 'DVD', 'VINIL', 'CASSETE') NOT NULL,
     ano_fabricacao INT NOT NULL,
     fabricado_em_mari BOOLEAN NOT NULL DEFAULT FALSE,
     preco DECIMAL(10,2) NOT NULL,
@@ -130,16 +130,17 @@ INSERT INTO clientes (nome, email, telefone, cidade, time_futebol, anime_favorit
 ('Maria Lima', 'maria@email.com', '83999990002', 'Joao Pessoa', 'Botafogo', 'Naruto'),
 ('Joao Pedro', 'joao@email.com', '83999990003', 'Campina Grande', 'Flamengo', 'Bleach');
 
-INSERT INTO produtos (nome, artista, categoria, ano_fabricacao, fabricado_em_mari, preco, estoque) VALUES
-('Thriller', 'Michael Jackson', 'Pop', 1982, FALSE, 129.90, 10),
-('Back in Black', 'AC/DC', 'Rock', 1980, TRUE, 99.90, 4),
-('The Dark Side of the Moon', 'Pink Floyd', 'Rock Progressivo', 1973, FALSE, 149.90, 7),
-('Hybrid Theory', 'Linkin Park', 'Nu Metal', 2000, TRUE, 89.90, 3),
-('Random Access Memories', 'Daft Punk', 'Eletronica', 2013, FALSE, 119.90, 12);
+INSERT INTO produtos (nome, artista, categoria, tipo_midia, ano_fabricacao, fabricado_em_mari, preco, estoque) VALUES
+('Thriller', 'Michael Jackson', 'Pop', 'VINIL', 1982, FALSE, 129.90, 10),
+('Back in Black', 'AC/DC', 'Rock', 'CD', 1980, TRUE, 99.90, 4),
+('The Dark Side of the Moon', 'Pink Floyd', 'Rock Progressivo', 'VINIL', 1973, FALSE, 149.90, 7),
+('Hybrid Theory', 'Linkin Park', 'Nu Metal', 'CD', 2000, TRUE, 89.90, 3),
+('Random Access Memories', 'Daft Punk', 'Eletronica', 'CASSETE', 2013, FALSE, 119.90, 12);
 
 CREATE OR REPLACE VIEW vw_pedidos_detalhados AS
 SELECT
     c.id AS compra_id,
+    c.cliente_id AS cliente_id,
     c.created_at AS data_compra,
     cl.nome AS cliente_nome,
     cl.email AS cliente_email,
@@ -172,7 +173,7 @@ SELECT
     SUM(c.valor_desconto) AS valor_total_descontos
 FROM compras c
 INNER JOIN vendedores v ON v.id = c.vendedor_id
-WHERE c.status_confirmacao IN ('confirmado', 'dispensado')
+WHERE c.status_confirmacao IN ('pendente', 'confirmado', 'dispensado')
 GROUP BY DATE_FORMAT(c.created_at, '%Y-%m'), v.id, v.nome;
 
 DELIMITER $$

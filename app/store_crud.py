@@ -13,14 +13,15 @@ class StoreCrud:
         try:
             sql = """
                 INSERT INTO produtos
-                    (nome, artista, categoria, ano_fabricacao, fabricado_em_mari, preco, estoque)
-                VALUES (%s, %s, %s, %s, %s, %s, %s)
+                    (nome, artista, categoria, tipo_midia, ano_fabricacao, fabricado_em_mari, preco, estoque)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
             """
 
             values = (
                 produto.nome,
                 produto.artista,
                 produto.categoria,
+                produto.tipo_midia.value,
                 produto.ano_fabricacao,
                 produto.fabricado_em_mari,
                 produto.preco,
@@ -106,6 +107,7 @@ class StoreCrud:
                     nome,
                     artista,
                     categoria,
+                    tipo_midia,
                     ano_fabricacao,
                     fabricado_em_mari,
                     preco,
@@ -132,6 +134,7 @@ class StoreCrud:
                     nome,
                     artista,
                     categoria,
+                    tipo_midia,
                     ano_fabricacao,
                     fabricado_em_mari,
                     preco,
@@ -233,6 +236,7 @@ class StoreCrud:
         preco_min: Decimal | None = None,
         preco_max: Decimal | None = None,
         categoria: str | None = None,
+        tipo_midia: str | None = None,
         fabricado_em_mari: bool | None = None,
         somente_baixo_estoque: bool = False,
     ) -> list[dict[str, Any]]:
@@ -259,6 +263,10 @@ class StoreCrud:
                 conditions.append("categoria = %s")
                 params.append(categoria)
 
+            if tipo_midia:
+                conditions.append("tipo_midia = %s")
+                params.append(tipo_midia)
+
             if fabricado_em_mari is not None:
                 conditions.append("fabricado_em_mari = %s")
                 params.append(fabricado_em_mari)
@@ -276,6 +284,7 @@ class StoreCrud:
                     nome,
                     artista,
                     categoria,
+                    tipo_midia,
                     ano_fabricacao,
                     fabricado_em_mari,
                     preco,

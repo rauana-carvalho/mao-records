@@ -376,6 +376,37 @@ def _validate_float(min_value=None, max_value=None):
         return True, value
     return validator
 
+def _validate_email(text):
+    text = text.strip()
+
+    if not text:
+        return False, "Esse campo não pode ser vazio."
+
+    if len(text) > 150:
+        return False, "Esse campo pode ter no máximo 150 caracteres."
+
+    if "@" not in text:
+        return False, "Digite um e-mail válido."
+
+    return True, text
+
+def _validate_tipo_midia(text):
+    if not text:
+        return False, "Esse campo não pode ser vazio."
+
+    normalized = text.strip().upper()
+
+    validos = {
+        "CD": "CD",
+        "DVD": "DVD",
+        "VINIL": "VINIL",
+        "CASSETE": "CASSETE",
+    }
+
+    if normalized not in validos:
+        return False, "Digite apenas: CD, DVD, VINIL ou CASSETE."
+
+    return True, validos[normalized]
 
 def _confirm_in_panel(title, message, enter_text="Enter para confirmar", esc_text="Esc para cancelar"):
     content = (
@@ -674,6 +705,15 @@ def prompt_produto_form():
     )
     if categoria is None:
         return None
+    
+    tipo_midia = _select_option_in_panel(
+        "Cadastrar produto",
+        "Tipo de mídia:",
+        ["CD", "DVD", "VINIL", "CASSETE"],
+        helper_text="Escolha o tipo de mídia do produto.",
+    )
+    if tipo_midia is None:
+        return None
 
     ano_fabricacao = _input_text_in_panel(
         "Cadastrar produto",
@@ -716,6 +756,7 @@ def prompt_produto_form():
         f"Nome: {nome}\n"
         f"Artista: {artista}\n"
         f"Categoria: {categoria}\n"
+        f"Tipo de mídia: {tipo_midia}\n"
         f"Ano de fabricação: {ano_fabricacao}\n"
         f"Fabricado em Mari: {'Sim' if fabricado_em_mari else 'Não'}\n"
         f"Preço: {preco}\n"
@@ -729,6 +770,7 @@ def prompt_produto_form():
         "nome": nome,
         "artista": artista,
         "categoria": categoria,
+        "tipo_midia": tipo_midia,
         "ano_fabricacao": ano_fabricacao,
         "fabricado_em_mari": fabricado_em_mari,
         "preco": preco,
@@ -750,7 +792,7 @@ def prompt_cliente_form():
         "Cadastrar cliente",
         "Email:",
         max_length=150,
-        validator=_validate_non_empty(max_length=150),
+        validator=_validate_email,
     )
     if email is None:
         return None
@@ -815,7 +857,7 @@ def prompt_vendedor_form():
         "Cadastrar vendedor",
         "Email:",
         max_length=150,
-        validator=_validate_non_empty(max_length=150),
+        validator=_validate_email,
     )
     if email is None:
         return None
@@ -872,6 +914,15 @@ def prompt_busca_produtos_form():
     )
     if categoria is None:
         return None
+    
+    tipo_midia = _input_text_in_panel(
+        "Buscar produtos",
+        "Tipo de mídia (opcional):",
+        max_length=8,
+        validator=_validate_optional_text(max_length=8),
+    )
+    if tipo_midia is None:
+        return None
 
     fabricado_em_mari = _input_text_in_panel(
         "Buscar produtos",
@@ -896,6 +947,7 @@ def prompt_busca_produtos_form():
         "preco_min": preco_min,
         "preco_max": preco_max,
         "categoria": categoria or None,
+        "tipo_midia": tipo_midia or None,
         "fabricado_em_mari": fabricado_em_mari,
         "somente_baixo_estoque": somente_baixo_estoque,
     }
@@ -973,3 +1025,59 @@ def prompt_cliente_id(title):
         max_length=10,
         validator=_validate_int(min_value=1),
     )
+
+def _render_select_screen(label, options, selected_index, helper_text="", error_text=None):
+    lines = [f"[bold #d16d9e]{label}[/bold #d16d9e]", ""]
+
+    for i, option in enumerate(options):
+        if i == selected_index:
+            lines.append(f"[bold #d16d9e]❯ {option}[/bold #d16d9e]")
+        else:
+            lines.append(f"  {option}")
+
+    lines.append("")
+    lines.append("[dim]↑ ↓ para navegar • Enter para confirmar • Esc para cancelar[/dim]")
+
+    if helper_text:
+        lines.extend(["", f"[dim]{helper_text}[/dim]"])
+
+    if error_text:
+        lines.extend(["", f"[bold red]{error_text}[/bold red]"])
+
+    return "\n".join(lines)
+
+
+def _select_option_in_panel(title, label, options, helper_text=""):
+    selected_index = 0
+
+    with Live(
+        build_layout(title, _render_select_screen(label, options, selected_index, helper_text)),
+        console=console,
+        screen=False,
+        auto_refresh=False,
+    ) as live:
+        while True:
+            key = readchar.readkey()
+
+            if key == readchar.key.CTRL_C:
+                raise KeyboardInterrupt
+
+            if key == readchar.key.ESC:
+                return None
+
+            if key == readchar.key.UP:
+                selected_index = (selected_index - 1) % len(options)
+                live.update(
+                    build_layout(title, _render_select_screen(label, options, selected_index, helper_text)),
+                    refresh=True,
+                )
+
+            elif key == readchar.key.DOWN:
+                selected_index = (selected_index + 1) % len(options)
+                live.update(
+                    build_layout(title, _render_select_screen(label, options, selected_index, helper_text)),
+                    refresh=True,
+                )
+
+            elif key in (readchar.key.ENTER, readchar.key.CR, readchar.key.LF):
+                return options[selected_index]

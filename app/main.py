@@ -3,7 +3,7 @@ from decimal import Decimal, InvalidOperation
 from rich.console import Console
 
 from store_crud import StoreCrud
-from store_models import Cliente, Produto, Vendedor
+from store_models import Cliente, Produto, Vendedor, TipoMidia
 from welcome import (
     interactive_menu,
     prompt_busca_produtos_form,
@@ -19,6 +19,11 @@ from welcome import (
 console = Console()
 crud = StoreCrud()
 
+print(StoreCrud)
+print(StoreCrud.__module__)
+print(hasattr(crud, "buscar_produtos"))
+print(dir(crud))
+input("enter")
 
 def to_decimal(value):
     if value is None or value == "":
@@ -29,6 +34,78 @@ def to_decimal(value):
         return None
 
 
+def format_database_error(error):
+    message = str(error)
+
+    if "chk_vendedor_email" in message:
+        return "O e-mail do vendedor é inválido. Digite um e-mail com @."
+
+    if "chk_cliente_email" in message:
+        return "O e-mail do cliente é inválido. Digite um e-mail com @."
+
+    if "chk_vendedor_nome" in message:
+        return "O nome do vendedor precisa ter pelo menos 3 caracteres."
+
+    if "chk_cliente_nome" in message:
+        return "O nome do cliente precisa ter pelo menos 3 caracteres."
+
+    if "chk_cliente_telefone" in message:
+        return "O telefone do cliente é inválido. Digite pelo menos 8 caracteres."
+
+    if "chk_produto_nome" in message:
+        return "O nome do produto não pode estar vazio."
+
+    if "chk_produto_artista" in message:
+        return "O artista do produto não pode estar vazio."
+
+    if "chk_produto_categoria" in message:
+        return "A categoria do produto não pode estar vazia."
+
+    if "chk_produto_ano" in message:
+        return "O ano de fabricação do produto é inválido."
+
+    if "chk_produto_preco" in message:
+        return "O preço do produto precisa ser maior que zero."
+
+    if "chk_produto_estoque" in message:
+        return "O estoque do produto não pode ser negativo."
+    
+    if message == "'tipo_midia'":
+        return "O filtro de tipo de mídia ainda não foi integrado corretamente no formulário de busca."
+
+    if "Duplicate entry" in message and "clientes.email" in message:
+        return "Já existe um cliente cadastrado com esse e-mail."
+
+    if "Duplicate entry" in message and "vendedores.email" in message:
+        return "Já existe um vendedor cadastrado com esse e-mail."
+
+    if "Duplicate entry" in message and "for key 'clientes.email'" in message:
+        return "Já existe um cliente cadastrado com esse e-mail."
+
+    if "Duplicate entry" in message and "for key 'vendedores.email'" in message:
+        return "Já existe um vendedor cadastrado com esse e-mail."
+
+    if "Estoque insuficiente" in message:
+        return "Não há estoque suficiente para efetivar a compra."
+
+    if "Cliente nao encontrado" in message:
+        return "Cliente não encontrado."
+
+    if "Produto nao encontrado" in message:
+        return "Produto não encontrado."
+
+    if "Forma de pagamento nao encontrada" in message:
+        return "Forma de pagamento não encontrada."
+
+    if "Quantidade invalida" in message:
+        return "A quantidade da compra precisa ser maior que zero."
+
+    if "Unknown column 'cliente_id' in 'where clause'" in message:
+        return "A visualização de pedidos está desatualizada no banco. Atualize a view 'vw_pedidos_detalhados'."
+
+    return f"Ocorreu um erro no banco de dados:\n{message}"
+
+
 def format_produto(produto):
     fabricado_em_mari = "Sim" if produto["fabricado_em_mari"] else "Não"
 
@@ -37,6 +114,7 @@ def format_produto(produto):
         f"Nome: {produto['nome']}\n"
         f"Artista: {produto['artista']}\n"
         f"Categoria: {produto['categoria']}\n"
+        f"Tipo de mídia: {produto['tipo_midia']}\n"
         f"Ano de fabricação: {produto['ano_fabricacao']}\n"
         f"Fabricado em Mari: {fabricado_em_mari}\n"
         f"Preço: R$ {produto['preco']}\n"
@@ -59,7 +137,7 @@ def format_cliente_detalhado(dados):
         f"[bold]Cliente[/bold]\n"
         f"ID: {cliente['id']}\n"
         f"Nome: {cliente['nome']}\n"
-        f"Email: {cliente['email']}\n"
+        f"E-mail: {cliente['email']}\n"
         f"Telefone: {cliente['telefone']}\n"
         f"Cidade: {cliente['cidade']}\n"
         f"Time de futebol: {cliente['time_futebol']}\n"
@@ -114,21 +192,25 @@ def main():
                     show_result("Cadastrar produto", "Operação cancelada.")
                     continue
 
-                produto = Produto(
-                    nome=dados["nome"],
-                    artista=dados["artista"],
-                    categoria=dados["categoria"],
-                    ano_fabricacao=dados["ano_fabricacao"],
-                    fabricado_em_mari=dados["fabricado_em_mari"],
-                    preco=Decimal(str(dados["preco"])),
-                    estoque=dados["estoque"],
-                )
+                try:
+                    produto = Produto(
+                        nome=dados["nome"],
+                        artista=dados["artista"],
+                        categoria=dados["categoria"],
+                        tipo_midia=TipoMidia(dados["tipo_midia"]),
+                        ano_fabricacao=dados["ano_fabricacao"],
+                        fabricado_em_mari=dados["fabricado_em_mari"],
+                        preco=Decimal(str(dados["preco"])),
+                        estoque=dados["estoque"],
+                    )
 
-                produto_id = crud.create_produto(produto)
-                show_result(
-                    "Cadastrar produto",
-                    f"Produto cadastrado com sucesso!\nID gerado: {produto_id}",
-                )
+                    produto_id = crud.create_produto(produto)
+                    show_result(
+                        "Cadastrar produto",
+                        f"Produto cadastrado com sucesso!\nID gerado: {produto_id}",
+                    )
+                except Exception as error:
+                    show_result("Cadastrar produto", f"[!] {format_database_error(error)}")
 
             elif opcao == "Cadastrar cliente":
                 dados = prompt_cliente_form()
@@ -136,20 +218,23 @@ def main():
                     show_result("Cadastrar cliente", "Operação cancelada.")
                     continue
 
-                cliente = Cliente(
-                    nome=dados["nome"],
-                    email=dados["email"],
-                    telefone=dados["telefone"],
-                    cidade=dados["cidade"],
-                    time_futebol=dados["time_futebol"],
-                    anime_favorito=dados["anime_favorito"],
-                )
+                try:
+                    cliente = Cliente(
+                        nome=dados["nome"],
+                        email=dados["email"],
+                        telefone=dados["telefone"],
+                        cidade=dados["cidade"],
+                        time_futebol=dados["time_futebol"],
+                        anime_favorito=dados["anime_favorito"],
+                    )
 
-                cliente_id = crud.create_cliente(cliente)
-                show_result(
-                    "Cadastrar cliente",
-                    f"Cliente cadastrado com sucesso!\nID gerado: {cliente_id}",
-                )
+                    cliente_id = crud.create_cliente(cliente)
+                    show_result(
+                        "Cadastrar cliente",
+                        f"Cliente cadastrado com sucesso!\nID gerado: {cliente_id}",
+                    )
+                except Exception as error:
+                    show_result("Cadastrar cliente", f"[!] {format_database_error(error)}")
 
             elif opcao == "Cadastrar vendedor":
                 dados = prompt_vendedor_form()
@@ -157,17 +242,20 @@ def main():
                     show_result("Cadastrar vendedor", "Operação cancelada.")
                     continue
 
-                vendedor = Vendedor(
-                    nome=dados["nome"],
-                    email=dados["email"],
-                    ativo=dados["ativo"],
-                )
+                try:
+                    vendedor = Vendedor(
+                        nome=dados["nome"],
+                        email=dados["email"],
+                        ativo=dados["ativo"],
+                    )
 
-                vendedor_id = crud.create_vendedor(vendedor)
-                show_result(
-                    "Cadastrar vendedor",
-                    f"Vendedor cadastrado com sucesso!\nID gerado: {vendedor_id}",
-                )
+                    vendedor_id = crud.create_vendedor(vendedor)
+                    show_result(
+                        "Cadastrar vendedor",
+                        f"Vendedor cadastrado com sucesso!\nID gerado: {vendedor_id}",
+                    )
+                except Exception as error:
+                    show_result("Cadastrar vendedor", f"[!] {format_database_error(error)}")
 
             elif opcao == "Buscar produtos":
                 filtros = prompt_busca_produtos_form()
@@ -175,20 +263,27 @@ def main():
                     show_result("Buscar produtos", "Operação cancelada.")
                     continue
 
-                resultados = crud.buscar_produtos(
-                    nome=filtros["nome"],
-                    preco_min=to_decimal(filtros["preco_min"]),
-                    preco_max=to_decimal(filtros["preco_max"]),
-                    categoria=filtros["categoria"],
-                    fabricado_em_mari=filtros["fabricado_em_mari"],
-                    somente_baixo_estoque=filtros["somente_baixo_estoque"],
-                )
+                try:
+                    resultados = crud.buscar_produtos(
+                        nome=filtros["nome"],
+                        preco_min=to_decimal(filtros["preco_min"]),
+                        preco_max=to_decimal(filtros["preco_max"]),
+                        categoria=filtros["categoria"],
+                        tipo_midia=filtros["tipo_midia"],
+                        fabricado_em_mari=filtros["fabricado_em_mari"],
+                        somente_baixo_estoque=filtros["somente_baixo_estoque"],
+                    )
 
-                show_result("Buscar produtos", format_lista_produtos(resultados))
+                    show_result("Buscar produtos", format_lista_produtos(resultados))
+                except Exception as error:
+                    show_result("Buscar produtos", f"[!] {format_database_error(error)}")
 
             elif opcao == "Listar produtos":
-                produtos = crud.listar_produtos()
-                show_result("Listar produtos", format_lista_produtos(produtos))
+                try:
+                    produtos = crud.listar_produtos()
+                    show_result("Listar produtos", format_lista_produtos(produtos))
+                except Exception as error:
+                    show_result("Listar produtos", f"[!] {format_database_error(error)}")
 
             elif opcao == "Realizar compra":
                 dados = prompt_compra_form()
@@ -196,16 +291,19 @@ def main():
                     show_result("Realizar compra", "Operação cancelada.")
                     continue
 
-                crud.registrar_compra(
-                    cliente_id=dados["cliente_id"],
-                    vendedor_id=dados["vendedor_id"],
-                    forma_pagamento_id=dados["forma_pagamento_id"],
-                    produto_id=dados["produto_id"],
-                    quantidade=dados["quantidade"],
-                    observacao=dados["observacao"],
-                )
+                try:
+                    crud.registrar_compra(
+                        cliente_id=dados["cliente_id"],
+                        vendedor_id=dados["vendedor_id"],
+                        forma_pagamento_id=dados["forma_pagamento_id"],
+                        produto_id=dados["produto_id"],
+                        quantidade=dados["quantidade"],
+                        observacao=dados["observacao"],
+                    )
 
-                show_result("Realizar compra", "Compra registrada com sucesso!")
+                    show_result("Realizar compra", "Compra registrada com sucesso!")
+                except Exception as error:
+                    show_result("Realizar compra", f"[!] {format_database_error(error)}")
 
             elif opcao == "Ver dados do cliente":
                 cliente_id = prompt_cliente_id("Ver dados do cliente")
@@ -213,15 +311,18 @@ def main():
                     show_result("Ver dados do cliente", "Operação cancelada.")
                     continue
 
-                dados_cliente = crud.listar_dados_cliente(cliente_id)
-                if not dados_cliente:
-                    show_result(
-                        "Ver dados do cliente",
-                        f"[!] Nenhum cliente encontrado com o ID {cliente_id}.",
-                    )
-                    continue
+                try:
+                    dados_cliente = crud.listar_dados_cliente(cliente_id)
+                    if not dados_cliente:
+                        show_result(
+                            "Ver dados do cliente",
+                            f"[!] Nenhum cliente encontrado com o ID {cliente_id}.",
+                        )
+                        continue
 
-                show_result("Ver dados do cliente", format_cliente_detalhado(dados_cliente))
+                    show_result("Ver dados do cliente", format_cliente_detalhado(dados_cliente))
+                except Exception as error:
+                    show_result("Ver dados do cliente", f"[!] {format_database_error(error)}")
 
             elif opcao == "Ver pedidos do cliente":
                 cliente_id = prompt_cliente_id("Ver pedidos do cliente")
@@ -229,48 +330,53 @@ def main():
                     show_result("Ver pedidos do cliente", "Operação cancelada.")
                     continue
 
-                pedidos = crud.listar_pedidos_cliente(cliente_id)
-                if not pedidos:
-                    show_result(
-                        "Ver pedidos do cliente",
-                        "Nenhum pedido encontrado para esse cliente.",
-                    )
-                    continue
+                try:
+                    pedidos = crud.listar_pedidos_cliente(cliente_id)
+                    if not pedidos:
+                        show_result(
+                            "Ver pedidos do cliente",
+                            "Nenhum pedido encontrado para esse cliente.",
+                        )
+                        continue
 
-                linhas = []
-                for pedido in pedidos:
-                    linhas.append(
-                        f"Pedido #{pedido['compra_id']} | "
-                        f"Data: {pedido['data_compra']} | "
-                        f"Produto: {pedido['produto_nome']} | "
-                        f"Categoria: {pedido['categoria']} | "
-                        f"Qtd: {pedido['quantidade']} | "
-                        f"Preço unit.: R$ {pedido['preco_unitario']} | "
-                        f"Total item: R$ {pedido['total_item']} | "
-                        f"Forma de pagamento: {pedido['forma_pagamento']} | "
-                        f"Status: {pedido['status_confirmacao']}"
-                    )
+                    linhas = []
+                    for pedido in pedidos:
+                        linhas.append(
+                            f"Pedido #{pedido['compra_id']} | "
+                            f"Data: {pedido['data_compra']} | "
+                            f"Produto: {pedido['produto_nome']} | "
+                            f"Categoria: {pedido['categoria']} | "
+                            f"Qtd: {pedido['quantidade']} | "
+                            f"Preço unit.: R$ {pedido['preco_unitario']} | "
+                            f"Total item: R$ {pedido['total_item']} | "
+                            f"Forma de pagamento: {pedido['forma_pagamento']} | "
+                            f"Status: {pedido['status_confirmacao']}"
+                        )
 
-                show_result("Ver pedidos do cliente", "\n".join(linhas))
+                    show_result("Ver pedidos do cliente", "\n".join(linhas))
+                except Exception as error:
+                    show_result("Ver pedidos do cliente", f"[!] {format_database_error(error)}")
 
             elif opcao == "Relatório mensal por vendedor":
-                relatorio = crud.relatorio_vendas_mensais()
-                show_result(
-                    "Relatório mensal por vendedor",
-                    format_relatorio_vendas(relatorio),
-                )
+                try:
+                    relatorio = crud.relatorio_vendas_mensais()
+                    show_result(
+                        "Relatório mensal por vendedor",
+                        format_relatorio_vendas(relatorio),
+                    )
+                except Exception as error:
+                    show_result("Relatório mensal por vendedor", f"[!] {format_database_error(error)}")
 
             elif opcao == "Sair":
                 break
-
-    except Exception as error:
-        show_result("Erro", f"[!] Ocorreu um erro:\n{error}")
 
     except (KeyboardInterrupt, EOFError):
         console.print(
             "\n[!] Operação cancelada pelo usuário. Encerrando o programa.\n",
             style="#d16d9e",
         )
+    except Exception as error:
+        show_result("Erro", f"[!] {format_database_error(error)}")
 
 
 if __name__ == "__main__":
