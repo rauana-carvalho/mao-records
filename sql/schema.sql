@@ -122,20 +122,20 @@ INSERT INTO formas_pagamento (nome, exige_confirmacao) VALUES
 
 INSERT INTO vendedores (nome, email) VALUES
 ('Rauana Carvalho', 'rauana@maorecords.com'),
-('Luis Gomes', 'luis@maorecords.com'),
-('Romulo Alves', 'romulo@maorecords.com');
+('Luis Sousa', 'luis@maorecords.com'),
+('Romulo Pereira', 'romulo@maorecords.com');
 
 INSERT INTO clientes (nome, email, telefone, cidade, time_futebol, anime_favorito) VALUES
-('Ana Sousa', 'ana@email.com', '83999990001', 'Sousa', 'Flamengo', 'One Piece'),
+('Rauane Carvalho', 'rauana@email.com', '83999990001', 'Sousa', 'Flamengo', 'One Piece'),
 ('Maria Lima', 'maria@email.com', '83999990002', 'Joao Pessoa', 'Botafogo', 'Naruto'),
-('Joao Pedro', 'joao@email.com', '83999990003', 'Campina Grande', 'Flamengo', 'Bleach');
+('Guilherme Gomes', 'guilherme@email.com', '83999990003', 'Campina Grande', 'Flamengo', 'Bleach');
 
 INSERT INTO produtos (nome, artista, categoria, tipo_midia, ano_fabricacao, fabricado_em_mari, preco, estoque) VALUES
-('Thriller', 'Michael Jackson', 'Pop', 'VINIL', 1982, FALSE, 129.90, 10),
-('Back in Black', 'AC/DC', 'Rock', 'CD', 1980, TRUE, 99.90, 4),
-('The Dark Side of the Moon', 'Pink Floyd', 'Rock Progressivo', 'VINIL', 1973, FALSE, 149.90, 7),
-('Hybrid Theory', 'Linkin Park', 'Nu Metal', 'CD', 2000, TRUE, 89.90, 3),
-('Random Access Memories', 'Daft Punk', 'Eletronica', 'CASSETE', 2013, FALSE, 119.90, 12);
+('OK Computer', 'Radiohead', 'Alternative rock', 'CASSETE', 1997, FALSE, 129.90, 10),
+('Stranger in the Alps', 'Phoebe Bridgers', 'Indie Rock', 'CD', 2017, TRUE, 99.90, 4),
+('Nothings About to Happen to Me', 'Mitski', 'Americana music', 'VINIL', 2026, FALSE, 149.90, 7),
+('From Mars to Sirius', 'Gojira', 'Metal', 'CD', 2005, TRUE, 89.90, 3),
+('Older ','Lizzy McAlpine', 'Indie folk', 'VINIL', 2024, FALSE, 119.90, 12);
 
 CREATE OR REPLACE VIEW vw_pedidos_detalhados AS
 SELECT

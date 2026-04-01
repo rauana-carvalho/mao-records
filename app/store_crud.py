@@ -166,7 +166,7 @@ class StoreCrud:
                     time_futebol,
                     anime_favorito
                 FROM clientes
-                ORDER BY nome ASC
+                ORDER BY id ASC
                 """
             )
             return cursor.fetchall()
@@ -200,7 +200,7 @@ class StoreCrud:
                     email,
                     ativo
                 FROM vendedores
-                ORDER BY nome ASC
+                ORDER BY id ASC
                 """
             )
             return cursor.fetchall()

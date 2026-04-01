@@ -290,7 +290,12 @@ def main():
                     show_result("Listar itens musicais", f"[!] {format_database_error(error)}")
 
             elif opcao == "Realizar compra":
-                dados = prompt_compra_form()
+                dados = prompt_compra_form(
+                    clientes=crud.listar_clientes(),
+                    vendedores=crud.listar_vendedores(),
+                    formas_pagamento=crud.listar_formas_pagamento(),
+                    produtos=crud.listar_produtos(),
+                )
                 if dados is None:
                     show_result("Realizar compra", "Operação cancelada.")
                     continue

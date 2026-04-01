@@ -1064,7 +1064,55 @@ def prompt_compra_cliente_inline_form():
     }
 
 
-def prompt_compra_form():
+def _format_clientes_helper(clientes):
+    if not clientes:
+        return "Nenhum cliente cadastrado."
+
+    linhas = ["Clientes cadastrados:"]
+    for cliente in clientes:
+        linhas.append(f"{cliente['id']} - {cliente['nome']}")
+    return "\n".join(linhas)
+
+
+def _format_vendedores_helper(vendedores):
+    if not vendedores:
+        return "Nenhum vendedor cadastrado."
+
+    linhas = ["Vendedores cadastrados:"]
+    for vendedor in vendedores:
+        status = "ativo" if vendedor["ativo"] else "inativo"
+        linhas.append(f"{vendedor['id']} - {vendedor['nome']} ({status})")
+    return "\n".join(linhas)
+
+
+def _format_formas_pagamento_helper(formas_pagamento):
+    if not formas_pagamento:
+        return "Nenhuma forma de pagamento cadastrada."
+
+    linhas = ["Formas de pagamento:"]
+    for forma in formas_pagamento:
+        linhas.append(f"{forma['id']} - {forma['nome']}")
+    return "\n".join(linhas)
+
+
+def _format_produtos_helper(produtos):
+    if not produtos:
+        return "Nenhum item musical cadastrado."
+
+    linhas = ["Itens musicais cadastrados:"]
+    for produto in produtos:
+        linhas.append(f"{produto['id']} - {produto['nome']}")
+    return "\n".join(linhas)
+
+
+def _buscar_nome_por_id(registros, registro_id, campo_nome="nome"):
+    for registro in registros or []:
+        if registro["id"] == registro_id:
+            return registro[campo_nome]
+    return None
+
+
+def prompt_compra_form(clientes=None, vendedores=None, formas_pagamento=None, produtos=None):
     cliente_cadastrado = _input_text_in_panel(
         "Realizar compra",
         "Cliente já cadastrado? (S/N):",
@@ -1082,6 +1130,7 @@ def prompt_compra_form():
             "Realizar compra",
             "ID do cliente:",
             max_length=10,
+            helper_text=_format_clientes_helper(clientes),
             validator=_validate_int(min_value=1),
         )
         if cliente_id is None:
@@ -1095,6 +1144,7 @@ def prompt_compra_form():
         "Realizar compra",
         "ID do vendedor:",
         max_length=10,
+        helper_text=_format_vendedores_helper(vendedores),
         validator=_validate_int(min_value=1),
     )
     if vendedor_id is None:
@@ -1104,6 +1154,7 @@ def prompt_compra_form():
         "Realizar compra",
         "ID da forma de pagamento:",
         max_length=10,
+        helper_text=_format_formas_pagamento_helper(formas_pagamento),
         validator=_validate_int(min_value=1),
     )
     if forma_pagamento_id is None:
@@ -1115,6 +1166,7 @@ def prompt_compra_form():
             "Realizar compra",
             f"ID do item musical #{len(itens) + 1}:",
             max_length=10,
+            helper_text=_format_produtos_helper(produtos),
             validator=_validate_int(min_value=1),
         )
         if produto_id is None:
@@ -1156,33 +1208,37 @@ def prompt_compra_form():
     )
     if observacao is None:
         return None
+    
+    cliente_nome = _buscar_nome_por_id(clientes, cliente_id) if cliente_id is not None else None
+    vendedor_nome = _buscar_nome_por_id(vendedores, vendedor_id)
+    forma_pagamento_nome = _buscar_nome_por_id(formas_pagamento, forma_pagamento_id)
 
     resumo_linhas = []
     if cliente_id is not None:
-        resumo_linhas.append(f"Cliente ID: {cliente_id}")
-    else:
-        resumo_linhas.extend(
-            [
-                f"Cliente: {cliente['nome']}",
-                f"E-mail: {cliente['email']}",
-                f"Telefone: {cliente['telefone']}",
-                f"Cidade: {cliente['cidade']}",
-            ]
-        )
+        if cliente_nome:
+            resumo_linhas.append(f"Cliente: {cliente_id} - {cliente_nome}")
+        else:
+            resumo_linhas.append(f"Cliente ID: {cliente_id}")
 
-    resumo_linhas.extend(
+        resumo_linhas.extend(
         [
-            f"Vendedor ID: {vendedor_id}",
-            f"Forma de pagamento ID: {forma_pagamento_id}",
+            f"Vendedor: {vendedor_id} - {vendedor_nome if vendedor_nome else 'não encontrado na lista'}",
+            f"Forma de pagamento: {forma_pagamento_id} - {forma_pagamento_nome if forma_pagamento_nome else 'não encontrada na lista'}",
             "",
             "Itens:",
         ]
     )
 
     for indice, item in enumerate(itens, start=1):
-        resumo_linhas.append(
-            f"{indice}. Produto ID {item['produto_id']} | Quantidade: {item['quantidade']}"
-        )
+        produto_nome = _buscar_nome_por_id(produtos, item["produto_id"])
+        if produto_nome:
+            resumo_linhas.append(
+                f"{indice}. Produto {item['produto_id']} - {produto_nome} | Quantidade: {item['quantidade']}"
+            )
+        else:
+            resumo_linhas.append(
+                f"{indice}. Produto ID {item['produto_id']} | Quantidade: {item['quantidade']}"
+            )
 
     if observacao:
         resumo_linhas.extend(["", f"Observação: {observacao}"])
