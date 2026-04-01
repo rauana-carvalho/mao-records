@@ -58,6 +58,13 @@ OPTIONS = [
     "Inserir CD",
     "Alterar CD",
     "Pesquisar CD por nome",
+
+    "(NOVO)Buscar com filtros avançados",
+    "(NOVO) Realizar compra",
+    "(NOVO) Ver pedidos",
+    "(NOVO) Histórico do cliente",
+    "(NOVO) Relatório mensal",
+
     "Remover CD",
     "Listar todos",
     "Exibir CD",

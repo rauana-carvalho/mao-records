@@ -7,7 +7,7 @@ from store_models import Cliente, Produto, Vendedor
 
 class StoreCrud:
     def create_produto(self, produto: Produto) -> int:
-        connection = connect()
+        connection = connect("mao_records")
         cursor = connection.cursor()
 
         try:
@@ -36,7 +36,7 @@ class StoreCrud:
             connection.close()
 
     def create_cliente(self, cliente: Cliente) -> int:
-        connection = connect()
+        connection = connect("mao_records")
         cursor = connection.cursor()
 
         try:
@@ -64,7 +64,7 @@ class StoreCrud:
             connection.close()
 
     def create_vendedor(self, vendedor: Vendedor) -> int:
-        connection = connect()
+        connection = connect("mao_records")
         cursor = connection.cursor()
 
         try:
@@ -86,7 +86,7 @@ class StoreCrud:
         fabricado_em_mari: bool | None = None,
         somente_baixo_estoque: bool = False,
     ) -> list[dict[str, Any]]:
-        connection = connect()
+        connection = connect("mao_records")
         cursor = connection.cursor(dictionary=True)
 
         try:
@@ -143,7 +143,7 @@ class StoreCrud:
             connection.close()
 
     def listar_dados_cliente(self, cliente_id: int) -> dict[str, Any] | None:
-        connection = connect()
+        connection = connect("mao_records")
         cursor = connection.cursor(dictionary=True)
 
         try:
@@ -190,12 +190,12 @@ class StoreCrud:
         quantidade: int,
         observacao: str | None = None,
     ) -> None:
-        connection = connect()
+        connection = connect("mao_records")
         cursor = connection.cursor()
 
         try:
             cursor.callproc(
-                "sp_registrar_compra",
+                "mao_records.sp_registrar_compra",
                 [
                     cliente_id,
                     vendedor_id,
@@ -212,7 +212,7 @@ class StoreCrud:
             connection.close()
 
     def listar_pedidos_view(self) -> list[dict[str, Any]]:
-        connection = connect()
+        connection = connect("mao_records")
         cursor = connection.cursor(dictionary=True)
 
         try:
@@ -229,8 +229,33 @@ class StoreCrud:
             cursor.close()
             connection.close()
 
+    def get_produto_by_id(self, produto_id: int):
+        connection = connect("mao_records")
+        cursor = connection.cursor(dictionary=True)
+
+        try:
+            cursor.execute(
+                "SELECT * FROM produtos WHERE id = %s",
+                (produto_id,)
+            )
+            return cursor.fetchone()
+        finally:
+            cursor.close()
+            connection.close()      
+
+    def listar_vendedores(self):
+        connection = connect("mao_records")
+        cursor = connection.cursor(dictionary=True)
+
+        try:
+            cursor.execute("SELECT id, nome, ativo FROM vendedores")
+            return cursor.fetchall()
+        finally:
+            cursor.close()
+            connection.close()  
+
     def relatorio_vendas_mensais(self) -> list[dict[str, Any]]:
-        connection = connect()
+        connection = connect("mao_records")
         cursor = connection.cursor(dictionary=True)
 
         try:

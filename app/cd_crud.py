@@ -7,7 +7,7 @@ class CDCrud:
 
     def create(self, cd):
 
-        connection = connect()
+        connection = connect("cds_store")
         cursor = connection.cursor()
 
         sql = """
@@ -35,7 +35,7 @@ class CDCrud:
 
     def update(self, id_cd, titulo, artista, genero, ano, preco, quantidade):
 
-        connection = connect()
+        connection = connect("cds_store")
         cursor = connection.cursor()
 
         sql = """
@@ -57,7 +57,7 @@ class CDCrud:
 
     def search_by_title(self, nome):
 
-        connection = connect()
+        connection = connect("cds_store")
         cursor = connection.cursor()
 
         sql = "SELECT * FROM cds WHERE titulo LIKE %s"
@@ -91,7 +91,7 @@ class CDCrud:
 
     def delete(self, id_cd):
 
-        connection = connect()
+        connection = connect("cds_store")
         cursor = connection.cursor()
 
         sql = "DELETE FROM cds WHERE id=%s"
@@ -107,7 +107,7 @@ class CDCrud:
 
     def get_all(self):
 
-        connection = connect()
+        connection = connect("cds_store")
         cursor = connection.cursor()
 
         sql = "SELECT * FROM cds"
@@ -141,7 +141,7 @@ class CDCrud:
 
     def get_by_id(self, id_cd):
 
-        connection = connect()
+        connection = connect("cds_store")
         cursor = connection.cursor()
 
         sql = "SELECT * FROM cds WHERE id=%s"
@@ -170,7 +170,7 @@ class CDCrud:
 
     def report(self):
 
-        connection = connect()
+        connection = connect("cds_store")
         cursor = connection.cursor()
 
         sql = "SELECT COUNT(*), SUM(quantidade), SUM(preco * quantidade) FROM cds"
