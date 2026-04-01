@@ -166,7 +166,7 @@ class StoreCrud:
                     time_futebol,
                     anime_favorito
                 FROM clientes
-                ORDER BY id ASC
+                ORDER BY nome ASC
                 """
             )
             return cursor.fetchall()
@@ -200,7 +200,7 @@ class StoreCrud:
                     email,
                     ativo
                 FROM vendedores
-                ORDER BY id ASC
+                ORDER BY nome ASC
                 """
             )
             return cursor.fetchall()
@@ -349,6 +349,7 @@ class StoreCrud:
                 """
                 SELECT
                     compra_id,
+                    cliente_id,
                     data_compra,
                     cliente_nome,
                     cliente_email,
@@ -376,31 +377,191 @@ class StoreCrud:
             cursor.close()
             connection.close()
 
+    def _get_cliente_desconto_percentual(self, cursor, cliente_id: int) -> Decimal:
+        cursor.execute(
+            """
+            SELECT time_futebol, anime_favorito, cidade
+            FROM clientes
+            WHERE id = %s
+            """,
+            (cliente_id,),
+        )
+        cliente = cursor.fetchone()
+
+        if not cliente:
+            raise ValueError("Cliente nao encontrado.")
+
+        percentual = Decimal("0.00")
+
+        time_futebol = (cliente["time_futebol"] or "").strip().lower()
+        anime_favorito = (cliente["anime_favorito"] or "").strip().lower()
+        cidade = (cliente["cidade"] or "").strip().lower()
+
+        if time_futebol == "flamengo":
+            percentual += Decimal("10.00")
+
+        if anime_favorito == "one piece":
+            percentual += Decimal("5.00")
+
+        if cidade == "sousa":
+            percentual += Decimal("5.00")
+
+        return min(percentual, Decimal("20.00"))
+
+    def _get_status_confirmacao(self, cursor, forma_pagamento_id: int) -> str:
+        cursor.execute(
+            """
+            SELECT exige_confirmacao
+            FROM formas_pagamento
+            WHERE id = %s
+            """,
+            (forma_pagamento_id,),
+        )
+        resultado = cursor.fetchone()
+
+        if not resultado:
+            raise ValueError("Forma de pagamento nao encontrada.")
+
+        exige_confirmacao = bool(resultado["exige_confirmacao"])
+        return "pendente" if exige_confirmacao else "dispensado"
+
     def registrar_compra(
         self,
         cliente_id: int,
         vendedor_id: int,
         forma_pagamento_id: int,
-        produto_id: int,
-        quantidade: int,
+        itens: list[dict[str, int]],
         observacao: str | None = None,
-    ) -> None:
+    ) -> int:
         connection = connect()
-        cursor = connection.cursor()
+        cursor = connection.cursor(dictionary=True)
 
         try:
-            cursor.callproc(
-                "sp_registrar_compra",
-                [
+            if not itens:
+                raise ValueError("Adicione pelo menos um item à compra.")
+
+            cursor.execute(
+                """
+                SELECT id, ativo
+                FROM vendedores
+                WHERE id = %s
+                """,
+                (vendedor_id,),
+            )
+            vendedor = cursor.fetchone()
+
+            if not vendedor:
+                raise ValueError("Vendedor nao encontrado.")
+
+            if not vendedor["ativo"]:
+                raise ValueError("O vendedor informado está inativo.")
+
+            percentual_desconto = self._get_cliente_desconto_percentual(cursor, cliente_id)
+            status_confirmacao = self._get_status_confirmacao(cursor, forma_pagamento_id)
+
+            subtotal = Decimal("0.00")
+            itens_processados: list[dict[str, Any]] = []
+
+            for item in itens:
+                produto_id = item["produto_id"]
+                quantidade = item["quantidade"]
+
+                if quantidade <= 0:
+                    raise ValueError("Quantidade invalida para a compra.")
+
+                cursor.execute(
+                    """
+                    SELECT id, nome, preco, estoque
+                    FROM produtos
+                    WHERE id = %s
+                    """,
+                    (produto_id,),
+                )
+                produto = cursor.fetchone()
+
+                if not produto:
+                    raise ValueError(f"Produto nao encontrado: ID {produto_id}.")
+
+                if produto["estoque"] < quantidade:
+                    raise ValueError(
+                        f"Estoque insuficiente para o item '{produto['nome']}' (ID {produto_id})."
+                    )
+
+                preco_unitario = Decimal(str(produto["preco"]))
+                total_item = preco_unitario * quantidade
+                subtotal += total_item
+
+                itens_processados.append(
+                    {
+                        "produto_id": produto_id,
+                        "quantidade": quantidade,
+                        "preco_unitario": preco_unitario,
+                        "total_item": total_item,
+                    }
+                )
+
+            valor_desconto = (subtotal * percentual_desconto / Decimal("100")).quantize(Decimal("0.01"))
+            total = (subtotal - valor_desconto).quantize(Decimal("0.01"))
+
+            cursor.execute(
+                """
+                INSERT INTO compras (
                     cliente_id,
                     vendedor_id,
                     forma_pagamento_id,
-                    produto_id,
-                    quantidade,
+                    status_confirmacao,
+                    subtotal,
+                    percentual_desconto,
+                    valor_desconto,
+                    total,
+                    observacao
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
+                """,
+                (
+                    cliente_id,
+                    vendedor_id,
+                    forma_pagamento_id,
+                    status_confirmacao,
+                    subtotal,
+                    percentual_desconto,
+                    valor_desconto,
+                    total,
                     observacao,
-                ],
+                ),
             )
+            compra_id = cursor.lastrowid
+
+            for item in itens_processados:
+                cursor.execute(
+                    """
+                    INSERT INTO itens_compra (
+                        compra_id,
+                        produto_id,
+                        quantidade,
+                        preco_unitario,
+                        total_item
+                    ) VALUES (%s, %s, %s, %s, %s)
+                    """,
+                    (
+                        compra_id,
+                        item["produto_id"],
+                        item["quantidade"],
+                        item["preco_unitario"],
+                        item["total_item"],
+                    ),
+                )
+
+                cursor.execute(
+                    """
+                    UPDATE produtos
+                    SET estoque = estoque - %s
+                    WHERE id = %s
+                    """,
+                    (item["quantidade"], item["produto_id"]),
+                )
+
             connection.commit()
+            return compra_id
 
         except Exception:
             connection.rollback()

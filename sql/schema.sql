@@ -199,6 +199,7 @@ BEGIN
     DECLARE v_anime_favorito VARCHAR(100);
     DECLARE v_cidade VARCHAR(100);
     DECLARE v_compra_id INT;
+    DECLARE v_vendedor_ativo BOOLEAN;
 
     IF p_quantidade IS NULL OR p_quantidade <= 0 THEN
         SIGNAL SQLSTATE '45000'
@@ -228,6 +229,21 @@ BEGIN
     IF v_time_futebol IS NULL THEN
         SIGNAL SQLSTATE '45000'
         SET MESSAGE_TEXT = 'Cliente nao encontrado.';
+    END IF;
+
+    SELECT ativo
+    INTO v_vendedor_ativo
+    FROM vendedores
+    WHERE id = p_vendedor_id;
+
+    IF v_vendedor_ativo IS NULL THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Vendedor nao encontrado.';
+    END IF;
+
+    IF v_vendedor_ativo = FALSE THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'O vendedor informado esta inativo.';
     END IF;
 
     SELECT exige_confirmacao

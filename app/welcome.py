@@ -954,7 +954,7 @@ def prompt_busca_produtos_form():
         "Buscar itens musicais",
         "Tipo de mídia (opcional):",
         max_length=8,
-        validator=_validate_optional_text(max_length=8),
+        validator=lambda text: (True, "") if text == "" else _validate_tipo_midia(text),
     )
     if tipo_midia is None:
         return None
@@ -968,35 +968,128 @@ def prompt_busca_produtos_form():
     if fabricado_em_mari is None:
         return None
 
-    somente_baixo_estoque = _input_text_in_panel(
+    modo_funcionario = _input_text_in_panel(
         "Buscar itens musicais",
-        "Somente estoque < 5? (S/N):",
+        "Busca como funcionário? (S/N):",
         max_length=3,
         validator=lambda text: _validate_yes_no_or_empty(text) if text else (False, "Esse campo não pode ser vazio."),
     )
-    if somente_baixo_estoque is None:
+    if modo_funcionario is None:
         return None
+
+    somente_baixo_estoque = False
+    if modo_funcionario:
+        somente_baixo_estoque = _input_text_in_panel(
+            "Buscar itens musicais",
+            "Somente estoque < 5? (S/N):",
+            max_length=3,
+            validator=lambda text: _validate_yes_no_or_empty(text) if text else (False, "Esse campo não pode ser vazio."),
+        )
+        if somente_baixo_estoque is None:
+            return None
 
     return {
         "titulo_album": titulo_album or None,
         "preco_min": preco_min,
         "preco_max": preco_max,
         "categoria": categoria or None,
-        "tipo_midia": (tipo_midia.upper() if tipo_midia else None),
+        "tipo_midia": tipo_midia or None,
         "fabricado_em_mari": fabricado_em_mari,
-        "somente_baixo_estoque": somente_baixo_estoque,
+        "somente_baixo_estoque": bool(somente_baixo_estoque),
+    }
+
+
+def prompt_compra_cliente_inline_form():
+    nome = _input_text_in_panel(
+        "Realizar compra",
+        "Nome do cliente:",
+        max_length=150,
+        validator=_validate_non_empty(max_length=150),
+    )
+    if nome is None:
+        return None
+
+    email = _input_text_in_panel(
+        "Realizar compra",
+        "E-mail do cliente:",
+        max_length=150,
+        validator=_validate_email,
+    )
+    if email is None:
+        return None
+
+    telefone = _input_text_in_panel(
+        "Realizar compra",
+        "Telefone do cliente:",
+        max_length=20,
+        validator=_validate_telefone,
+    )
+    if telefone is None:
+        return None
+
+    cidade = _input_text_in_panel(
+        "Realizar compra",
+        "Cidade do cliente:",
+        max_length=100,
+        validator=_validate_non_empty(max_length=100),
+    )
+    if cidade is None:
+        return None
+
+    time_futebol = _input_text_in_panel(
+        "Realizar compra",
+        "Time de futebol:",
+        max_length=50,
+        validator=_validate_non_empty(max_length=50),
+    )
+    if time_futebol is None:
+        return None
+
+    anime_favorito = _input_text_in_panel(
+        "Realizar compra",
+        "Anime favorito:",
+        max_length=100,
+        validator=_validate_non_empty(max_length=100),
+    )
+    if anime_favorito is None:
+        return None
+
+    return {
+        "nome": nome,
+        "email": email,
+        "telefone": telefone,
+        "cidade": cidade,
+        "time_futebol": time_futebol,
+        "anime_favorito": anime_favorito,
     }
 
 
 def prompt_compra_form():
-    cliente_id = _input_text_in_panel(
+    cliente_cadastrado = _input_text_in_panel(
         "Realizar compra",
-        "ID do cliente:",
-        max_length=10,
-        validator=_validate_int(min_value=1),
+        "Cliente já cadastrado? (S/N):",
+        max_length=3,
+        validator=lambda text: _validate_yes_no_or_empty(text) if text else (False, "Esse campo não pode ser vazio."),
     )
-    if cliente_id is None:
+    if cliente_cadastrado is None:
         return None
+
+    cliente_id = None
+    cliente = None
+
+    if cliente_cadastrado:
+        cliente_id = _input_text_in_panel(
+            "Realizar compra",
+            "ID do cliente:",
+            max_length=10,
+            validator=_validate_int(min_value=1),
+        )
+        if cliente_id is None:
+            return None
+    else:
+        cliente = prompt_compra_cliente_inline_form()
+        if cliente is None:
+            return None
 
     vendedor_id = _input_text_in_panel(
         "Realizar compra",
@@ -1016,23 +1109,44 @@ def prompt_compra_form():
     if forma_pagamento_id is None:
         return None
 
-    produto_id = _input_text_in_panel(
-        "Realizar compra",
-        "ID do item musical:",
-        max_length=10,
-        validator=_validate_int(min_value=1),
-    )
-    if produto_id is None:
-        return None
+    itens = []
+    while True:
+        produto_id = _input_text_in_panel(
+            "Realizar compra",
+            f"ID do item musical #{len(itens) + 1}:",
+            max_length=10,
+            validator=_validate_int(min_value=1),
+        )
+        if produto_id is None:
+            return None
 
-    quantidade = _input_text_in_panel(
-        "Realizar compra",
-        "Quantidade:",
-        max_length=10,
-        validator=_validate_int(min_value=1, max_value=1000),
-    )
-    if quantidade is None:
-        return None
+        quantidade = _input_text_in_panel(
+            "Realizar compra",
+            f"Quantidade do item #{len(itens) + 1}:",
+            max_length=10,
+            validator=_validate_int(min_value=1, max_value=1000),
+        )
+        if quantidade is None:
+            return None
+
+        itens.append(
+            {
+                "produto_id": produto_id,
+                "quantidade": quantidade,
+            }
+        )
+
+        adicionar_mais = _input_text_in_panel(
+            "Realizar compra",
+            "Adicionar mais um item? (S/N):",
+            max_length=3,
+            validator=lambda text: _validate_yes_no_or_empty(text) if text else (False, "Esse campo não pode ser vazio."),
+        )
+        if adicionar_mais is None:
+            return None
+
+        if not adicionar_mais:
+            break
 
     observacao = _input_text_in_panel(
         "Realizar compra",
@@ -1043,12 +1157,45 @@ def prompt_compra_form():
     if observacao is None:
         return None
 
+    resumo_linhas = []
+    if cliente_id is not None:
+        resumo_linhas.append(f"Cliente ID: {cliente_id}")
+    else:
+        resumo_linhas.extend(
+            [
+                f"Cliente: {cliente['nome']}",
+                f"E-mail: {cliente['email']}",
+                f"Telefone: {cliente['telefone']}",
+                f"Cidade: {cliente['cidade']}",
+            ]
+        )
+
+    resumo_linhas.extend(
+        [
+            f"Vendedor ID: {vendedor_id}",
+            f"Forma de pagamento ID: {forma_pagamento_id}",
+            "",
+            "Itens:",
+        ]
+    )
+
+    for indice, item in enumerate(itens, start=1):
+        resumo_linhas.append(
+            f"{indice}. Produto ID {item['produto_id']} | Quantidade: {item['quantidade']}"
+        )
+
+    if observacao:
+        resumo_linhas.extend(["", f"Observação: {observacao}"])
+
+    if not _confirm_in_panel("Confirmar compra", "\n".join(resumo_linhas)):
+        return None
+
     return {
         "cliente_id": cliente_id,
+        "cliente": cliente,
         "vendedor_id": vendedor_id,
         "forma_pagamento_id": forma_pagamento_id,
-        "produto_id": produto_id,
-        "quantidade": quantidade,
+        "itens": itens,
         "observacao": observacao or None,
     }
 

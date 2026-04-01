@@ -92,6 +92,15 @@ def format_database_error(error):
     if "Forma de pagamento nao encontrada" in message:
         return "Forma de pagamento não encontrada."
 
+    if "Vendedor nao encontrado" in message:
+        return "Vendedor não encontrado."
+
+    if "inativo" in message:
+        return "O vendedor informado está inativo."
+
+    if "Adicione pelo menos um item" in message:
+        return "Adicione pelo menos um item à compra."
+
     if "Quantidade invalida" in message:
         return "A quantidade da compra precisa ser maior que zero."
 
@@ -287,16 +296,31 @@ def main():
                     continue
 
                 try:
-                    crud.registrar_compra(
-                        cliente_id=dados["cliente_id"],
+                    cliente_id = dados.get("cliente_id")
+
+                    if cliente_id is None:
+                        cliente = Cliente(
+                            nome=dados["cliente"]["nome"],
+                            email=dados["cliente"]["email"],
+                            telefone=dados["cliente"]["telefone"],
+                            cidade=dados["cliente"]["cidade"],
+                            time_futebol=dados["cliente"]["time_futebol"],
+                            anime_favorito=dados["cliente"]["anime_favorito"],
+                        )
+                        cliente_id = crud.create_cliente(cliente)
+
+                    compra_id = crud.registrar_compra(
+                        cliente_id=cliente_id,
                         vendedor_id=dados["vendedor_id"],
                         forma_pagamento_id=dados["forma_pagamento_id"],
-                        produto_id=dados["produto_id"],
-                        quantidade=dados["quantidade"],
+                        itens=dados["itens"],
                         observacao=dados["observacao"],
                     )
 
-                    show_result("Realizar compra", "Compra registrada com sucesso!")
+                    show_result(
+                        "Realizar compra",
+                        f"Compra registrada com sucesso!\nID da compra: {compra_id}",
+                    )
                 except Exception as error:
                     show_result("Realizar compra", f"[!] {format_database_error(error)}")
 
@@ -334,18 +358,32 @@ def main():
                         )
                         continue
 
+                    pedidos = crud.listar_pedidos_cliente(cliente_id)
+
+                    if not pedidos:
+                        show_result("Ver pedidos do cliente", "Nenhum pedido encontrado para este cliente.")
+                        continue
+
                     linhas = []
+                    pedido_atual = None
+
                     for pedido in pedidos:
+                        if pedido_atual != pedido["compra_id"]:
+                            if linhas:
+                                linhas.append("")
+
+                            linhas.append(f"Pedido #{pedido['compra_id']}")
+                            linhas.append(f"Data: {pedido['data_compra']}")
+                            linhas.append(f"Forma de pagamento: {pedido['forma_pagamento']}")
+                            linhas.append(f"Status: {pedido['status_confirmacao']}")
+                            linhas.append("Itens:")
+
+                            pedido_atual = pedido["compra_id"]
+
                         linhas.append(
-                            f"Pedido #{pedido['compra_id']} | "
-                            f"Data: {pedido['data_compra']} | "
-                            f"Item musical: {pedido['produto_nome']} | "
-                            f"Categoria: {pedido['categoria']} | "
-                            f"Qtd: {pedido['quantidade']} | "
-                            f"Preço unit.: R$ {pedido['preco_unitario']} | "
-                            f"Total item: R$ {pedido['total_item']} | "
-                            f"Forma de pagamento: {pedido['forma_pagamento']} | "
-                            f"Status: {pedido['status_confirmacao']}"
+                            f"- {pedido['produto_nome']} | Categoria: {pedido['categoria']} | "
+                            f"Qtd: {pedido['quantidade']} | Preço unit.: R$ {pedido['preco_unitario']} | "
+                            f"Total item: R$ {pedido['total_item']}"
                         )
 
                     show_result("Ver pedidos do cliente", "\n".join(linhas))
