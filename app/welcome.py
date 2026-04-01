@@ -55,20 +55,15 @@ TITLE_ART = [
 TITLE_PANEL_HEIGHT = len(TITLE_ART) + 4
 
 OPTIONS = [
-    "Inserir CD",
-    "Alterar CD",
-    "Pesquisar CD por nome",
-
-    "(NOVO)Buscar com filtros avançados",
-    "(NOVO) Realizar compra",
-    "(NOVO) Ver pedidos",
-    "(NOVO) Histórico do cliente",
-    "(NOVO) Relatório mensal",
-
-    "Remover CD",
-    "Listar todos",
-    "Exibir CD",
-    "Relatório de estoque",
+    "Cadastrar produto",
+    "Cadastrar cliente",
+    "Cadastrar vendedor",
+    "Buscar produtos",
+    "Listar produtos",
+    "Realizar compra",
+    "Ver dados do cliente",
+    "Ver pedidos do cliente",
+    "Relatório mensal por vendedor",
     "Sair",
 ]
 
@@ -606,3 +601,375 @@ def prompt_remove_confirmation(cd_existente):
 
 def show_home_screen():
     return True
+
+def _validate_optional_float(min_value=None, max_value=None):
+    def validator(text):
+        if text == "":
+            return True, ""
+        try:
+            value = float(text)
+        except ValueError:
+            return False, "Entrada inválida. Deve ser um número."
+
+        if not math.isfinite(value):
+            return False, "Entrada inválida. Digite um número finito."
+
+        if min_value is not None and value < min_value:
+            return False, f"O valor deve ser no mínimo {min_value}."
+
+        if max_value is not None and value > max_value:
+            return False, f"O valor deve ser no máximo {max_value}."
+
+        return True, value
+    return validator
+
+
+def _validate_optional_text(max_length=None):
+    def validator(text):
+        if text == "":
+            return True, ""
+        if max_length is not None and len(text) > max_length:
+            return False, f"Esse campo pode ter no máximo {max_length} caracteres."
+        return True, text
+    return validator
+
+
+def _validate_yes_no_or_empty(text):
+    if text == "":
+        return True, None
+
+    normalized = text.strip().lower()
+    if normalized in ("s", "sim", "y", "yes"):
+        return True, True
+    if normalized in ("n", "nao", "não", "no"):
+        return True, False
+
+    return False, "Digite S para sim, N para não, ou Enter para ignorar."
+
+
+def prompt_produto_form():
+    nome = _input_text_in_panel(
+        "Cadastrar produto",
+        "Nome:",
+        max_length=150,
+        validator=_validate_non_empty(max_length=150),
+    )
+    if nome is None:
+        return None
+
+    artista = _input_text_in_panel(
+        "Cadastrar produto",
+        "Artista:",
+        max_length=150,
+        validator=_validate_non_empty(max_length=150),
+    )
+    if artista is None:
+        return None
+
+    categoria = _input_text_in_panel(
+        "Cadastrar produto",
+        "Categoria:",
+        max_length=100,
+        validator=_validate_non_empty(max_length=100),
+    )
+    if categoria is None:
+        return None
+
+    ano_fabricacao = _input_text_in_panel(
+        "Cadastrar produto",
+        "Ano de fabricação:",
+        max_length=4,
+        validator=_validate_int(min_value=1900, max_value=2026),
+    )
+    if ano_fabricacao is None:
+        return None
+
+    fabricado_em_mari = _input_text_in_panel(
+        "Cadastrar produto",
+        "Fabricado em Mari? (S/N):",
+        max_length=3,
+        validator=lambda text: _validate_yes_no_or_empty(text) if text else (False, "Esse campo não pode ser vazio."),
+    )
+    if fabricado_em_mari is None:
+        return None
+
+    preco = _input_text_in_panel(
+        "Cadastrar produto",
+        "Preço:",
+        max_length=12,
+        validator=_validate_float(min_value=0, max_value=1000000.99),
+    )
+    if preco is None:
+        return None
+
+    estoque = _input_text_in_panel(
+        "Cadastrar produto",
+        "Estoque:",
+        max_length=10,
+        validator=_validate_int(min_value=0, max_value=10000),
+    )
+    if estoque is None:
+        return None
+
+    resumo = (
+        f"[bold #d16d9e]Confira os dados:[/bold #d16d9e]\n\n"
+        f"Nome: {nome}\n"
+        f"Artista: {artista}\n"
+        f"Categoria: {categoria}\n"
+        f"Ano de fabricação: {ano_fabricacao}\n"
+        f"Fabricado em Mari: {'Sim' if fabricado_em_mari else 'Não'}\n"
+        f"Preço: {preco}\n"
+        f"Estoque: {estoque}\n"
+    )
+
+    if not _confirm_in_panel("Confirmar cadastro", resumo):
+        return None
+
+    return {
+        "nome": nome,
+        "artista": artista,
+        "categoria": categoria,
+        "ano_fabricacao": ano_fabricacao,
+        "fabricado_em_mari": fabricado_em_mari,
+        "preco": preco,
+        "estoque": estoque,
+    }
+
+
+def prompt_cliente_form():
+    nome = _input_text_in_panel(
+        "Cadastrar cliente",
+        "Nome:",
+        max_length=150,
+        validator=_validate_non_empty(max_length=150),
+    )
+    if nome is None:
+        return None
+
+    email = _input_text_in_panel(
+        "Cadastrar cliente",
+        "Email:",
+        max_length=150,
+        validator=_validate_non_empty(max_length=150),
+    )
+    if email is None:
+        return None
+
+    telefone = _input_text_in_panel(
+        "Cadastrar cliente",
+        "Telefone:",
+        max_length=20,
+        validator=_validate_non_empty(max_length=20),
+    )
+    if telefone is None:
+        return None
+
+    cidade = _input_text_in_panel(
+        "Cadastrar cliente",
+        "Cidade:",
+        max_length=100,
+        validator=_validate_non_empty(max_length=100),
+    )
+    if cidade is None:
+        return None
+
+    time_futebol = _input_text_in_panel(
+        "Cadastrar cliente",
+        "Time de futebol:",
+        max_length=50,
+        validator=_validate_non_empty(max_length=50),
+    )
+    if time_futebol is None:
+        return None
+
+    anime_favorito = _input_text_in_panel(
+        "Cadastrar cliente",
+        "Anime favorito:",
+        max_length=100,
+        validator=_validate_non_empty(max_length=100),
+    )
+    if anime_favorito is None:
+        return None
+
+    return {
+        "nome": nome,
+        "email": email,
+        "telefone": telefone,
+        "cidade": cidade,
+        "time_futebol": time_futebol,
+        "anime_favorito": anime_favorito,
+    }
+
+
+def prompt_vendedor_form():
+    nome = _input_text_in_panel(
+        "Cadastrar vendedor",
+        "Nome:",
+        max_length=150,
+        validator=_validate_non_empty(max_length=150),
+    )
+    if nome is None:
+        return None
+
+    email = _input_text_in_panel(
+        "Cadastrar vendedor",
+        "Email:",
+        max_length=150,
+        validator=_validate_non_empty(max_length=150),
+    )
+    if email is None:
+        return None
+
+    ativo = _input_text_in_panel(
+        "Cadastrar vendedor",
+        "Vendedor ativo? (S/N):",
+        max_length=3,
+        validator=lambda text: _validate_yes_no_or_empty(text) if text else (False, "Esse campo não pode ser vazio."),
+    )
+    if ativo is None:
+        return None
+
+    return {
+        "nome": nome,
+        "email": email,
+        "ativo": ativo,
+    }
+
+
+def prompt_busca_produtos_form():
+    nome = _input_text_in_panel(
+        "Buscar produtos",
+        "Nome (opcional):",
+        max_length=150,
+        validator=_validate_optional_text(max_length=150),
+    )
+    if nome is None:
+        return None
+
+    preco_min = _input_text_in_panel(
+        "Buscar produtos",
+        "Preço mínimo (opcional):",
+        max_length=12,
+        validator=_validate_optional_float(min_value=0),
+    )
+    if preco_min is None:
+        return None
+
+    preco_max = _input_text_in_panel(
+        "Buscar produtos",
+        "Preço máximo (opcional):",
+        max_length=12,
+        validator=_validate_optional_float(min_value=0),
+    )
+    if preco_max is None:
+        return None
+
+    categoria = _input_text_in_panel(
+        "Buscar produtos",
+        "Categoria (opcional):",
+        max_length=100,
+        validator=_validate_optional_text(max_length=100),
+    )
+    if categoria is None:
+        return None
+
+    fabricado_em_mari = _input_text_in_panel(
+        "Buscar produtos",
+        "Fabricado em Mari? (S/N ou Enter para ignorar):",
+        max_length=5,
+        validator=_validate_yes_no_or_empty,
+    )
+    if fabricado_em_mari is None:
+        return None
+
+    somente_baixo_estoque = _input_text_in_panel(
+        "Buscar produtos",
+        "Somente estoque < 5? (S/N):",
+        max_length=3,
+        validator=lambda text: _validate_yes_no_or_empty(text) if text else (False, "Esse campo não pode ser vazio."),
+    )
+    if somente_baixo_estoque is None:
+        return None
+
+    return {
+        "nome": nome or None,
+        "preco_min": preco_min,
+        "preco_max": preco_max,
+        "categoria": categoria or None,
+        "fabricado_em_mari": fabricado_em_mari,
+        "somente_baixo_estoque": somente_baixo_estoque,
+    }
+
+
+def prompt_compra_form():
+    cliente_id = _input_text_in_panel(
+        "Realizar compra",
+        "ID do cliente:",
+        max_length=10,
+        validator=_validate_int(min_value=1),
+    )
+    if cliente_id is None:
+        return None
+
+    vendedor_id = _input_text_in_panel(
+        "Realizar compra",
+        "ID do vendedor:",
+        max_length=10,
+        validator=_validate_int(min_value=1),
+    )
+    if vendedor_id is None:
+        return None
+
+    forma_pagamento_id = _input_text_in_panel(
+        "Realizar compra",
+        "ID da forma de pagamento:",
+        max_length=10,
+        validator=_validate_int(min_value=1),
+    )
+    if forma_pagamento_id is None:
+        return None
+
+    produto_id = _input_text_in_panel(
+        "Realizar compra",
+        "ID do produto:",
+        max_length=10,
+        validator=_validate_int(min_value=1),
+    )
+    if produto_id is None:
+        return None
+
+    quantidade = _input_text_in_panel(
+        "Realizar compra",
+        "Quantidade:",
+        max_length=10,
+        validator=_validate_int(min_value=1, max_value=1000),
+    )
+    if quantidade is None:
+        return None
+
+    observacao = _input_text_in_panel(
+        "Realizar compra",
+        "Observação (opcional):",
+        max_length=255,
+        validator=_validate_optional_text(max_length=255),
+    )
+    if observacao is None:
+        return None
+
+    return {
+        "cliente_id": cliente_id,
+        "vendedor_id": vendedor_id,
+        "forma_pagamento_id": forma_pagamento_id,
+        "produto_id": produto_id,
+        "quantidade": quantidade,
+        "observacao": observacao or None,
+    }
+
+
+def prompt_cliente_id(title):
+    return _input_text_in_panel(
+        title,
+        "ID do cliente:",
+        max_length=10,
+        validator=_validate_int(min_value=1),
+    )

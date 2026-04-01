@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from decimal import Decimal
 from typing import Optional
-from datetime import datetime
+
 
 @dataclass
 class Produto:
@@ -34,14 +34,31 @@ class Vendedor:
     id_vendedor: Optional[int] = None
 
 @dataclass
-class Pedido:
+class FormaPagamento:
+    nome: str
+    exige_confirmacao: bool
+    id_forma_pagamento: Optional[int] = None
+
+
+@dataclass
+class Compra:
     cliente_id: int
     vendedor_id: int
     forma_pagamento_id: int
+    status_confirmacao: str = "dispensado"
+    subtotal: Decimal = Decimal("0.00")
+    percentual_desconto: Decimal = Decimal("0.00")
+    valor_desconto: Decimal = Decimal("0.00")
+    total: Decimal = Decimal("0.00")
+    observacao: Optional[str] = None
+    id_compra: Optional[int] = None
+
+
+@dataclass
+class ItemCompra:
+    compra_id: int
     produto_id: int
     quantidade: int
-    subtotal: Optional[Decimal] = None
-    desconto: Optional[Decimal] = None
-    total: Optional[Decimal] = None
-    status: Optional[str] = None
-    data: Optional[datetime] = None
+    preco_unitario: Decimal
+    total_item: Decimal
+    id_item: Optional[int] = None

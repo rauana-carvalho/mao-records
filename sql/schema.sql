@@ -48,6 +48,7 @@ CREATE TABLE produtos (
     nome VARCHAR(150) NOT NULL,
     artista VARCHAR(150) NOT NULL,
     categoria VARCHAR(100) NOT NULL,
+    tipo_midia ENUM('CD', 'DVD', 'VINYL', 'CASSETE') NOT NULL,
     ano_fabricacao INT NOT NULL,
     fabricado_em_mari BOOLEAN NOT NULL DEFAULT FALSE,
     preco DECIMAL(10,2) NOT NULL,
@@ -139,7 +140,6 @@ INSERT INTO produtos (nome, artista, categoria, ano_fabricacao, fabricado_em_mar
 CREATE OR REPLACE VIEW vw_pedidos_detalhados AS
 SELECT
     c.id AS compra_id,
-    c.cliente_id AS cliente_id,
     c.created_at AS data_compra,
     cl.nome AS cliente_nome,
     cl.email AS cliente_email,
